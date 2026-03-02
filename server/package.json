@@ -1,0 +1,14 @@
+{
+  "name": "market-compass-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "@hono/node-server": "^1.13.0",
+    "yahoo-finance2": "^2.13.2"
+  }
+}
