@@ -1,7 +1,7 @@
 import { handle } from 'hono/vercel'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { marketRoutes } from './_lib/market.ts'
+import { marketRoutes } from './_lib/market'
 
 const app = new Hono()
 
