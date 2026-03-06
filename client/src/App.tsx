@@ -37,11 +37,13 @@ type AssetTimeframes = Record<Timeframe, TimeframeData | null>
 type PreparedAssetTimeframes = Record<Timeframe, PreparedTimeframeData | null>
 
 const ASSET_TABS: Array<{ symbol: SupportedSymbol; label: string; shortLabel: string; tag: string }> = [
-  { symbol: 'NQ=F', label: 'Nasdaq 100 Futures', shortLabel: 'NQ', tag: 'NQ=F' },
-  { symbol: 'ES=F', label: 'S&P 500 Futures',    shortLabel: 'ES', tag: 'ES=F' },
-  { symbol: 'GC=F', label: 'Gold Futures',        shortLabel: 'GC', tag: 'GC=F' },
-  { symbol: 'SI=F', label: 'Silver Futures',      shortLabel: 'SI', tag: 'SI=F' },
-  { symbol: 'CL=F', label: 'Crude Oil Futures',   shortLabel: 'CL', tag: 'CL=F' },
+  { symbol: 'NQ=F',  label: 'Nasdaq 100 Futures', shortLabel: 'NQ',    tag: 'NQ=F'  },
+  { symbol: 'ES=F',  label: 'S&P 500 Futures',    shortLabel: 'ES',    tag: 'ES=F'  },
+  { symbol: 'GC=F',  label: 'Gold Futures',        shortLabel: 'GC',    tag: 'GC=F'  },
+  { symbol: 'SI=F',  label: 'Silver Futures',      shortLabel: 'SI',    tag: 'SI=F'  },
+  { symbol: 'CL=F',  label: 'Crude Oil Futures',   shortLabel: 'CL',    tag: 'CL=F'  },
+  { symbol: '^KS11', label: 'KOSPI',               shortLabel: 'KOSPI', tag: '^KS11' },
+  { symbol: '^KQ11', label: 'KOSDAQ',              shortLabel: 'KOSDAQ',tag: '^KQ11' },
 ]
 
 const DirectionPanelWithAnalysis = DirectionPanel as unknown as (

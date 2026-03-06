@@ -1,0 +1,6 @@
+# Exclude the local Node backend; Vercel deployment does not need the server app directory.
+server/
+# Exclude installed dependencies to keep upload size and build scanning minimal.
+node_modules/
+# Exclude the local startup helper script; Vercel does not use shell entrypoints here.
+start.sh

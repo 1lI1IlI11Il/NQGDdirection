@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { OHLCVBar } from '../lib/indicators'
 
-export const SUPPORTED_SYMBOLS = ['NQ=F', 'GC=F', 'SI=F', 'CL=F', 'ES=F'] as const
+export const SUPPORTED_SYMBOLS = ['NQ=F', 'GC=F', 'SI=F', 'CL=F', 'ES=F', '^KS11', '^KQ11'] as const
 export type SupportedSymbol = typeof SUPPORTED_SYMBOLS[number]
 
 export interface SymbolData {
@@ -36,7 +36,7 @@ function aggregate1hTo4H(bars: OHLCVBar[]): OHLCVBar[] {
 
 export const REFRESH_INTERVAL_FAST_MS = 60_000   // Live ON  — 1분
 export const REFRESH_INTERVAL_SLOW_MS = 180_000  // Live OFF — 3분
-const FETCH_SYMBOLS_PARAM = 'NQ%3DF%2CGC%3DF%2CSI%3DF%2CCL%3DF%2CES%3DF'
+const FETCH_SYMBOLS_PARAM = 'NQ%3DF%2CGC%3DF%2CSI%3DF%2CCL%3DF%2CES%3DF%2C%5EKS11%2C%5EKQ11'
 
 function mapSupportedSymbols<T>(mapper: (symbol: SupportedSymbol) => T): Record<SupportedSymbol, T> {
   return Object.fromEntries(

@@ -1,0 +1,14 @@
+{
+  "name": "nqgd-direction",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bash start.sh",
+    "build": "cd client && npm run build",
+    "start": "cd client && npm run preview"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  }
+}
