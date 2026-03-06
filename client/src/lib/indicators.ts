@@ -35,11 +35,34 @@ export interface BollingerResult {
   lower: number;
 }
 
+export interface EMAResult {
+  time: number;
+  ema20: number | undefined;
+  ema50: number | undefined;
+  ema200: number | undefined;
+}
+
+export interface ATRResult {
+  time: number;
+  value: number;
+}
+
+export interface EMAAlignment {
+  bullish: boolean;
+  bearish: boolean;
+  mixed: boolean;
+  ema20: number | undefined;
+  ema50: number | undefined;
+  ema200: number | undefined;
+}
+
 export interface IndicatorResults {
   vwap: VWAPResult[];
   rsi: RSIResult[];
   macd: MACDResult[];
   bollinger: BollingerResult[];
+  ema: EMAResult[];
+  atr: ATRResult[];
 }
 
 function utcDayKey(unixSeconds: number): string {
@@ -50,7 +73,7 @@ function utcDayKey(unixSeconds: number): string {
   return `${year}-${month}-${day}`;
 }
 
-function calculateEMA(values: number[], period: number): Array<number | undefined> {
+export function calculateEMA(values: number[], period: number): Array<number | undefined> {
   const result: Array<number | undefined> = new Array(values.length).fill(undefined);
   if (period <= 0 || values.length < period) {
     return result;
@@ -71,6 +94,91 @@ function calculateEMA(values: number[], period: number): Array<number | undefine
   }
 
   return result;
+}
+
+export function calculateEMAValues(bars: OHLCVBar[]): EMAResult[] {
+  if (bars.length === 0) {
+    return [];
+  }
+
+  const closes = bars.map((bar) => bar.close);
+  const ema20 = calculateEMA(closes, 20);
+  const ema50 = calculateEMA(closes, 50);
+  const ema200 = calculateEMA(closes, 200);
+
+  return bars.map((bar, index) => ({
+    time: bar.time,
+    ema20: ema20[index],
+    ema50: ema50[index],
+    ema200: ema200[index],
+  }));
+}
+
+export function calculateATR(bars: OHLCVBar[], period: number = 14): ATRResult[] {
+  if (period <= 0 || bars.length < period) {
+    return [];
+  }
+
+  const results: ATRResult[] = [];
+  let trueRangeSum = 0;
+  let atr = 0;
+
+  for (let i = 0; i < bars.length; i += 1) {
+    const bar = bars[i];
+    const trueRange =
+      i === 0
+        ? bar.high - bar.low
+        : Math.max(
+            bar.high - bar.low,
+            Math.abs(bar.high - bars[i - 1].close),
+            Math.abs(bar.low - bars[i - 1].close),
+          );
+
+    if (i < period) {
+      trueRangeSum += trueRange;
+      if (i < period - 1) {
+        continue;
+      }
+
+      atr = trueRangeSum / period;
+      results.push({ time: bar.time, value: atr });
+      continue;
+    }
+
+    atr = ((atr * (period - 1)) + trueRange) / period;
+    results.push({ time: bar.time, value: atr });
+  }
+
+  return results;
+}
+
+export function getEMAAlignment(bars: OHLCVBar[]): EMAAlignment {
+  const lastEMA = calculateEMAValues(bars)[bars.length - 1];
+  const ema20 = lastEMA?.ema20;
+  const ema50 = lastEMA?.ema50;
+  const ema200 = lastEMA?.ema200;
+
+  const bullish =
+    ema20 !== undefined &&
+    ema50 !== undefined &&
+    ema200 !== undefined &&
+    ema20 > ema50 &&
+    ema50 > ema200;
+  const bearish =
+    ema20 !== undefined &&
+    ema50 !== undefined &&
+    ema200 !== undefined &&
+    ema20 < ema50 &&
+    ema50 < ema200;
+
+  return {
+    bullish,
+    bearish,
+    mixed: !bullish && !bearish,
+    ema20,
+    ema50,
+    ema200,
+  };
 }
 
 export function calculateVWAP(bars: OHLCVBar[]): VWAPResult[] {
@@ -272,5 +380,7 @@ export function calculateAll(bars: OHLCVBar[]): IndicatorResults {
     rsi: calculateRSI(bars),
     macd: calculateMACD(bars),
     bollinger: calculateBollinger(bars),
+    ema: calculateEMAValues(bars),
+    atr: calculateATR(bars),
   };
 }

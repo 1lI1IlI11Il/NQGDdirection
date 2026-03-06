@@ -1,25 +1,82 @@
-import { useMemo } from 'react'
-import { useMarketData } from './hooks/useMarketData'
+import { Fragment, useMemo, type ComponentProps } from 'react'
+import { SUPPORTED_SYMBOLS, useMarketData, type SupportedSymbol } from './hooks/useMarketData'
 import { MarketChart } from './components/Chart/MarketChart'
 import { DirectionPanel } from './components/DirectionPanel/DirectionPanel'
 import { calculateAll, type OHLCVBar, type IndicatorResults } from './lib/indicators'
 import { getICTAnalysis, type ICTAnalysis } from './lib/ictAnalysis'
-import { computeDirectionBias, type DirectionSignal } from './components/DirectionPanel/directionBias'
+import {
+  computeFullAnalysis,
+  type DirectionSignal,
+  type FullDirectionResult,
+} from './components/DirectionPanel/directionBias'
+import { analyzeIntermarket, type IntermarketAnalysis } from './lib/intermarket'
+
+type Timeframe = '15m' | '4H'
 
 interface TimeframeData {
   bars: OHLCVBar[]
   indicators: IndicatorResults
   ictAnalysis: ICTAnalysis
   signal: DirectionSignal
+  fullResult: FullDirectionResult | null
 }
 
-function deriveData(bars: OHLCVBar[]): TimeframeData {
+interface PreparedTimeframeData {
+  bars: OHLCVBar[]
+  indicators: IndicatorResults
+  ictAnalysis: ICTAnalysis
+}
+
+type AssetTimeframes = Record<Timeframe, TimeframeData | null>
+type PreparedAssetTimeframes = Record<Timeframe, PreparedTimeframeData | null>
+
+const ASSET_SECTIONS: Array<{ symbol: SupportedSymbol; label: string }> = [
+  { symbol: 'NQ=F', label: 'Nasdaq 100 Futures (NQ=F)' },
+  { symbol: 'GC=F', label: 'Gold Futures (GC=F)' },
+  { symbol: 'SI=F', label: 'Silver Futures (SI=F)' },
+  { symbol: 'CL=F', label: 'Crude Oil Futures (CL=F)' },
+  { symbol: 'ES=F', label: 'S&P 500 Futures (ES=F)' },
+]
+
+const DirectionPanelWithAnalysis = DirectionPanel as unknown as (
+  props: ComponentProps<typeof DirectionPanel> & {
+    fullResult?: FullDirectionResult | null
+    intermarket?: IntermarketAnalysis | null
+  }
+) => ReturnType<typeof DirectionPanel>
+
+function prepareTimeframeData(bars: OHLCVBar[]): PreparedTimeframeData {
   const indicators = calculateAll(bars)
   return {
     bars,
     indicators,
     ictAnalysis: getICTAnalysis(bars),
-    signal: computeDirectionBias(bars, indicators),
+  }
+}
+
+function deriveData(params: {
+  asset: SupportedSymbol
+  timeframe: Timeframe
+  prepared: PreparedTimeframeData
+  htfBias: ICTAnalysis['structureBias']
+  intermarket: IntermarketAnalysis | null
+}): TimeframeData {
+  const fullResult = computeFullAnalysis({
+    asset: params.asset,
+    timeframe: params.timeframe,
+    bars: params.prepared.bars,
+    indicators: params.prepared.indicators,
+    ictAnalysis: params.prepared.ictAnalysis,
+    htfBias: params.htfBias,
+    intermarket: params.intermarket ?? undefined,
+  })
+
+  return {
+    bars: params.prepared.bars,
+    indicators: params.prepared.indicators,
+    ictAnalysis: params.prepared.ictAnalysis,
+    signal: fullResult.signal,
+    fullResult,
   }
 }
 
@@ -42,11 +99,13 @@ function TimeframePanel({ symbol, timeframe, data }: TimeframePanelProps) {
           timeframe={timeframe}
           height={340}
         />
-        <DirectionPanel
+        <DirectionPanelWithAnalysis
           symbol={symbol}
           signal={data.signal}
           ictAnalysis={data.ictAnalysis}
           timeframe={timeframe}
+          fullResult={data.fullResult}
+          intermarket={data.fullResult?.intermarket ?? null}
         />
       </div>
     </div>
@@ -54,7 +113,7 @@ function TimeframePanel({ symbol, timeframe, data }: TimeframePanelProps) {
 }
 
 interface AssetSectionProps {
-  symbol: 'NQ=F' | 'GC=F'
+  symbol: SupportedSymbol
   label: string
   data15m: TimeframeData | null
   data4H: TimeframeData | null
@@ -109,25 +168,71 @@ function AssetSection({ symbol, label, data15m, data4H, lastFetch }: AssetSectio
 export default function App() {
   const { data, loading, refreshing, lastFetch, refresh } = useMarketData()
 
-  const nq15m = useMemo(() => {
-    const bars = data['15m']['NQ=F']?.bars ?? []
-    return bars.length ? deriveData(bars) : null
+  const assetData = useMemo(() => {
+    const prepared = Object.fromEntries(
+      SUPPORTED_SYMBOLS.map((symbol) => {
+        const bars15m = data['15m'][symbol]?.bars ?? []
+        const bars4H = data['4H'][symbol]?.bars ?? []
+
+        return [
+          symbol,
+          {
+            '15m': bars15m.length ? prepareTimeframeData(bars15m) : null,
+            '4H': bars4H.length ? prepareTimeframeData(bars4H) : null,
+          },
+        ]
+      }),
+    ) as Record<SupportedSymbol, PreparedAssetTimeframes>
+
+    const intermarket = analyzeIntermarket(
+      Object.fromEntries(
+        SUPPORTED_SYMBOLS.flatMap((symbol) => {
+          const source = prepared[symbol]['4H'] ?? prepared[symbol]['15m']
+
+          return source
+            ? [[symbol, { bars: source.bars, structureBias: source.ictAnalysis.structureBias }]]
+            : []
+        }),
+      ),
+    )
+
+    return Object.fromEntries(
+      SUPPORTED_SYMBOLS.map((symbol) => {
+        const data15m = prepared[symbol]['15m']
+        const data4H = prepared[symbol]['4H']
+        const htfBias = data4H?.ictAnalysis.structureBias ?? 'RANGING'
+
+        return [
+          symbol,
+          {
+            '15m': data15m
+              ? deriveData({
+                  asset: symbol,
+                  timeframe: '15m',
+                  prepared: data15m,
+                  htfBias,
+                  intermarket,
+                })
+              : null,
+            '4H': data4H
+              ? deriveData({
+                  asset: symbol,
+                  timeframe: '4H',
+                  prepared: data4H,
+                  htfBias,
+                  intermarket,
+                })
+              : null,
+          },
+        ]
+      }),
+    ) as Record<SupportedSymbol, AssetTimeframes>
   }, [data])
 
-  const nq4H = useMemo(() => {
-    const bars = data['4H']['NQ=F']?.bars ?? []
-    return bars.length ? deriveData(bars) : null
-  }, [data])
-
-  const gc15m = useMemo(() => {
-    const bars = data['15m']['GC=F']?.bars ?? []
-    return bars.length ? deriveData(bars) : null
-  }, [data])
-
-  const gc4H = useMemo(() => {
-    const bars = data['4H']['GC=F']?.bars ?? []
-    return bars.length ? deriveData(bars) : null
-  }, [data])
+  const hasAny15mData = useMemo(
+    () => SUPPORTED_SYMBOLS.some((symbol) => assetData[symbol]['15m']),
+    [assetData],
+  )
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4">
@@ -159,25 +264,22 @@ export default function App() {
 
         {!loading && (
           <>
-            <AssetSection
-              symbol="NQ=F"
-              label="Nasdaq 100 Futures (NQ=F)"
-              data15m={nq15m}
-              data4H={nq4H}
-              lastFetch={lastFetch}
-            />
-            <div className="border-t border-zinc-700" />
-            <AssetSection
-              symbol="GC=F"
-              label="Gold Futures (GC=F)"
-              data15m={gc15m}
-              data4H={gc4H}
-              lastFetch={lastFetch}
-            />
+            {ASSET_SECTIONS.map(({ symbol, label }, index) => (
+              <Fragment key={symbol}>
+                {index > 0 && <div className="border-t border-zinc-700" />}
+                <AssetSection
+                  symbol={symbol}
+                  label={label}
+                  data15m={assetData[symbol]['15m']}
+                  data4H={assetData[symbol]['4H']}
+                  lastFetch={lastFetch}
+                />
+              </Fragment>
+            ))}
           </>
         )}
 
-        {!loading && !nq15m && !gc15m && (
+        {!loading && !hasAny15mData && (
           <div className="flex items-center justify-center h-32 text-red-500 text-sm">
             Failed to load market data. Is the server running on port 3001?
           </div>

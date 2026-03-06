@@ -1,3 +1,5 @@
+import { getEMAAlignment } from './indicators'
+
 export interface OHLCVBar {
   time: number
   open: number
@@ -36,6 +38,30 @@ export interface SwingPoint {
 }
 
 export type StructureBias = 'BULLISH' | 'BEARISH' | 'RANGING'
+export type StructureShift = 'BOS' | 'CHoCH' | 'MSS' | 'NONE'
+
+export interface StructureShiftEvent {
+  type: StructureShift
+  price: number
+  time: number
+  description: string
+}
+
+export interface PremiumDiscountZone {
+  equilibrium: number
+  premiumTop: number
+  discountBottom: number
+  currentZone: 'PREMIUM' | 'DISCOUNT' | 'EQUILIBRIUM'
+  currentPrice: number
+}
+
+export interface EMAContext {
+  alignment: 'BULLISH' | 'BEARISH' | 'MIXED'
+  ema20: number | undefined
+  ema50: number | undefined
+  ema200: number | undefined
+  priceVsEma20: 'ABOVE' | 'BELOW' | 'UNKNOWN'
+}
 
 export interface LiquidityLevel {
   price: number
@@ -53,6 +79,9 @@ export interface ICTAnalysis {
   nearestBullOB: OrderBlock | null
   nearestBearOB: OrderBlock | null
   currentPrice: number
+  structureShifts: StructureShiftEvent[]
+  premiumDiscount: PremiumDiscountZone | null
+  emaContext: EMAContext | null
 }
 
 interface IndexedSwingPoint {
@@ -237,6 +266,180 @@ export function detectMarketStructure(swingPoints: SwingPoint[]): StructureBias 
   }
 
   return 'RANGING'
+}
+
+function getSwingBreakDirection(recentSwingPoints: SwingPoint[]): 'BULLISH' | 'BEARISH' | null {
+  const currentPoint = recentSwingPoints[recentSwingPoints.length - 1]
+  const previousSameType = recentSwingPoints
+    .slice(0, -1)
+    .reverse()
+    .find((point) => point.type === currentPoint.type)
+
+  if (!previousSameType) {
+    return null
+  }
+
+  if (currentPoint.type === 'high' && currentPoint.price > previousSameType.price) {
+    return 'BULLISH'
+  }
+
+  if (currentPoint.type === 'low' && currentPoint.price < previousSameType.price) {
+    return 'BEARISH'
+  }
+
+  return null
+}
+
+function buildStructureShiftDescription(
+  type: StructureShift,
+  direction: 'BULLISH' | 'BEARISH',
+  currentPoint: SwingPoint,
+  referencePoint: SwingPoint
+): string {
+  const biasLabel = direction === 'BULLISH' ? 'Bullish' : 'Bearish'
+  const swingLabel = currentPoint.type === 'high' ? 'swing high' : 'swing low'
+
+  if (type === 'CHoCH') {
+    return `${biasLabel} CHoCH through ${swingLabel} ${formatPrice(referencePoint.price)}`
+  }
+
+  if (type === 'MSS') {
+    return `${biasLabel} MSS confirmed beyond ${swingLabel} ${formatPrice(referencePoint.price)}`
+  }
+
+  return `${biasLabel} BOS through ${swingLabel} ${formatPrice(referencePoint.price)}`
+}
+
+export function detectStructureShifts(swingPoints: SwingPoint[]): StructureShiftEvent[] {
+  if (swingPoints.length < 4) {
+    return []
+  }
+
+  const events: StructureShiftEvent[] = []
+  let confirmedTrend = detectMarketStructure(swingPoints.slice(0, 4))
+  let pendingReversal: 'BULLISH' | 'BEARISH' | null = null
+
+  for (let index = 3; index < swingPoints.length; index += 1) {
+    const recentSwingPoints = swingPoints.slice(index - 3, index + 1)
+    const currentPoint = recentSwingPoints[recentSwingPoints.length - 1]
+    const previousSameType = recentSwingPoints
+      .slice(0, -1)
+      .reverse()
+      .find((point) => point.type === currentPoint.type)
+
+    if (!previousSameType) {
+      continue
+    }
+
+    const breakDirection = getSwingBreakDirection(recentSwingPoints)
+    if (breakDirection === null) {
+      continue
+    }
+
+    const recentBias = detectMarketStructure(recentSwingPoints)
+
+    if (confirmedTrend === 'RANGING') {
+      if (recentBias !== breakDirection) {
+        continue
+      }
+
+      confirmedTrend = breakDirection
+      pendingReversal = null
+      events.push({
+        type: 'BOS',
+        price: currentPoint.price,
+        time: currentPoint.time,
+        description: buildStructureShiftDescription('BOS', breakDirection, currentPoint, previousSameType)
+      })
+      continue
+    }
+
+    if (breakDirection === confirmedTrend) {
+      pendingReversal = null
+      events.push({
+        type: 'BOS',
+        price: currentPoint.price,
+        time: currentPoint.time,
+        description: buildStructureShiftDescription('BOS', breakDirection, currentPoint, previousSameType)
+      })
+      continue
+    }
+
+    if (pendingReversal === breakDirection) {
+      if (recentBias !== breakDirection) {
+        continue
+      }
+
+      confirmedTrend = breakDirection
+      pendingReversal = null
+      events.push({
+        type: 'MSS',
+        price: currentPoint.price,
+        time: currentPoint.time,
+        description: buildStructureShiftDescription('MSS', breakDirection, currentPoint, previousSameType)
+      })
+      continue
+    }
+
+    pendingReversal = breakDirection
+    events.push({
+      type: 'CHoCH',
+      price: currentPoint.price,
+      time: currentPoint.time,
+      description: buildStructureShiftDescription('CHoCH', breakDirection, currentPoint, previousSameType)
+    })
+  }
+
+  return events
+}
+
+export function computePremiumDiscountZone(
+  bars: OHLCVBar[],
+  currentPrice: number
+): PremiumDiscountZone | null {
+  if (bars.length === 0 || !Number.isFinite(currentPrice)) {
+    return null
+  }
+
+  const dealingRange = bars.slice(-20)
+  const rangeHigh = findMax(dealingRange.map((bar) => bar.high))
+  const rangeLow = findMin(dealingRange.map((bar) => bar.low))
+  const rangeSize = rangeHigh - rangeLow
+  const equilibrium = (rangeHigh + rangeLow) / 2
+  const premiumTop = rangeLow + (rangeSize * 0.75)
+  const discountBottom = rangeLow + (rangeSize * 0.25)
+  const currentZone =
+    currentPrice > equilibrium
+      ? 'PREMIUM'
+      : currentPrice < equilibrium
+        ? 'DISCOUNT'
+        : 'EQUILIBRIUM'
+
+  return {
+    equilibrium,
+    premiumTop,
+    discountBottom,
+    currentZone,
+    currentPrice
+  }
+}
+
+export function computeEMAContext(bars: OHLCVBar[]): EMAContext {
+  const alignment = getEMAAlignment(bars)
+  const currentPrice = bars[bars.length - 1]?.close
+
+  return {
+    alignment: alignment.bullish ? 'BULLISH' : alignment.bearish ? 'BEARISH' : 'MIXED',
+    ema20: alignment.ema20,
+    ema50: alignment.ema50,
+    ema200: alignment.ema200,
+    priceVsEma20:
+      currentPrice === undefined || alignment.ema20 === undefined
+        ? 'UNKNOWN'
+        : currentPrice >= alignment.ema20
+          ? 'ABOVE'
+          : 'BELOW'
+  }
 }
 
 function dedupeOrderBlocks(blocks: IndexedOrderBlock[]): IndexedOrderBlock[] {
@@ -501,16 +704,22 @@ export function getICTAnalysis(bars: OHLCVBar[]): ICTAnalysis {
       liquidityLevels: [],
       nearestBullOB: null,
       nearestBearOB: null,
-      currentPrice: 0
+      currentPrice: 0,
+      structureShifts: [],
+      premiumDiscount: null,
+      emaContext: null
     }
   }
 
   const currentPrice = bars[bars.length - 1].close
   const allSwingPoints = detectSwingPoints(bars)
   const structureBias = detectMarketStructure(allSwingPoints)
+  const structureShifts = detectStructureShifts(allSwingPoints)
   const orderBlocks = detectOrderBlocks(bars)
   const fvgs = detectFairValueGaps(bars)
   const liquidityLevels = detectLiquidityLevels(allSwingPoints, currentPrice).slice(0, 6)
+  const premiumDiscount = computePremiumDiscountZone(bars, currentPrice)
+  const emaContext = computeEMAContext(bars)
 
   const nearestBullOB =
     orderBlocks
@@ -530,6 +739,9 @@ export function getICTAnalysis(bars: OHLCVBar[]): ICTAnalysis {
     liquidityLevels,
     nearestBullOB,
     nearestBearOB,
-    currentPrice
+    currentPrice,
+    structureShifts,
+    premiumDiscount,
+    emaContext
   }
 }

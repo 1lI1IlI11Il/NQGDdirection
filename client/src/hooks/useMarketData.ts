@@ -1,21 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { OHLCVBar } from '../lib/indicators'
 
+export const SUPPORTED_SYMBOLS = ['NQ=F', 'GC=F', 'SI=F', 'CL=F', 'ES=F'] as const
+export type SupportedSymbol = typeof SUPPORTED_SYMBOLS[number]
+
 export interface SymbolData {
   bars: OHLCVBar[]
   lastUpdated: number
   error?: string
 }
 
+type SymbolDataMap = Partial<Record<SupportedSymbol, SymbolData | null>>
+type MarketDataResponse = Partial<Record<SupportedSymbol, SymbolData>>
+
 interface MarketDataState {
-  '15m': {
-    'NQ=F': SymbolData | null
-    'GC=F': SymbolData | null
-  }
-  '4H': {
-    'NQ=F': SymbolData | null
-    'GC=F': SymbolData | null
-  }
+  '15m': SymbolDataMap
+  '4H': SymbolDataMap
 }
 
 function aggregate1hTo4H(bars: OHLCVBar[]): OHLCVBar[] {
@@ -35,16 +35,17 @@ function aggregate1hTo4H(bars: OHLCVBar[]): OHLCVBar[] {
 }
 
 const REFRESH_INTERVAL_MS = 60_000
+const FETCH_SYMBOLS_PARAM = 'NQ%3DF%2CGC%3DF%2CSI%3DF%2CCL%3DF%2CES%3DF'
+
+function mapSupportedSymbols<T>(mapper: (symbol: SupportedSymbol) => T): Record<SupportedSymbol, T> {
+  return Object.fromEntries(
+    SUPPORTED_SYMBOLS.map(symbol => [symbol, mapper(symbol)]),
+  ) as Record<SupportedSymbol, T>
+}
 
 const EMPTY_STATE: MarketDataState = {
-  '15m': {
-    'NQ=F': null,
-    'GC=F': null,
-  },
-  '4H': {
-    'NQ=F': null,
-    'GC=F': null,
-  },
+  '15m': mapSupportedSymbols(() => null),
+  '4H': mapSupportedSymbols(() => null),
 }
 
 function to4HData(symbolData: SymbolData | undefined): SymbolData | null {
@@ -66,27 +67,21 @@ export function useMarketData() {
     if (manual) setRefreshing(true)
     try {
       const [res15m, res1h] = await Promise.all([
-        fetch('/api/market/batch?symbols=NQ%3DF%2CGC%3DF&interval=15m&range=5d'),
-        fetch('/api/market/batch?symbols=NQ%3DF%2CGC%3DF&interval=1h&range=60d'),
+        fetch(`/api/market/batch?symbols=${FETCH_SYMBOLS_PARAM}&interval=15m&range=5d`),
+        fetch(`/api/market/batch?symbols=${FETCH_SYMBOLS_PARAM}&interval=1h&range=60d`),
       ])
 
       if (!res15m.ok) throw new Error(`15m HTTP ${res15m.status}`)
       if (!res1h.ok) throw new Error(`1h HTTP ${res1h.status}`)
 
       const [json15m, json1h] = await Promise.all([
-        res15m.json() as Promise<Record<string, SymbolData>>,
-        res1h.json() as Promise<Record<string, SymbolData>>,
+        res15m.json() as Promise<MarketDataResponse>,
+        res1h.json() as Promise<MarketDataResponse>,
       ])
 
       setData({
-        '15m': {
-          'NQ=F': json15m['NQ=F'] ?? null,
-          'GC=F': json15m['GC=F'] ?? null,
-        },
-        '4H': {
-          'NQ=F': to4HData(json1h['NQ=F']),
-          'GC=F': to4HData(json1h['GC=F']),
-        },
+        '15m': mapSupportedSymbols(symbol => json15m[symbol] ?? null),
+        '4H': mapSupportedSymbols(symbol => to4HData(json1h[symbol])),
       })
 
       setLastFetch(new Date())
