@@ -60,7 +60,25 @@ bash start.sh
 - Frontend: http://localhost:5173
 - API server: http://localhost:3001
 
-Data is fetched from Yahoo Finance every 60 seconds automatically. Use the Refresh button to trigger a manual update.
+---
+
+## Data Refresh — Live / Eco Mode
+
+The header provides three controls:
+
+| Control | Description |
+|---------|-------------|
+| `● Live · 1m` | Live mode ON — fetches every **60 seconds** (default) |
+| `○ Eco · 3m` | Eco mode OFF — fetches every **180 seconds** |
+| `↻` | Manual immediate refresh |
+| `next Xs` | Countdown to next automatic fetch |
+
+**Why Eco mode?** Yahoo Finance is a public API with no official rate limit. Running at 60-second intervals for extended periods risks IP-based throttling, especially on shared hosting (e.g., Vercel). Eco mode reduces API calls to 1/3, significantly lowering the risk of being blocked.
+
+| Mode | Calls/hour | Calls/day (12h) | Calls/month |
+|------|-----------|-----------------|-------------|
+| Live (1m) | 120 | 1,440 | 43,200 |
+| Eco (3m) | 40 | 480 | 14,400 |
 
 ---
 
@@ -70,20 +88,21 @@ Data is fetched from Yahoo Finance every 60 seconds automatically. Use the Refre
 NQGDdirection/
 ├── client/                         # React + Vite frontend
 │   └── src/
-│       ├── App.tsx                 # Tab-based UI shell
+│       ├── App.tsx                 # Tab-based UI shell + Live/Eco toggle
 │       ├── hooks/
-│       │   └── useMarketData.ts    # Data fetching (5 symbols × 2 timeframes)
+│       │   └── useMarketData.ts    # Data fetching (5 symbols × 2 timeframes, configurable interval)
 │       ├── lib/
-│       │   ├── indicators.ts       # VWAP, RSI, MACD, Bollinger, EMA, ATR
+│       │   ├── indicators.ts       # VWAP, RSI, MACD, Bollinger, EMA(20/50/200), ATR
 │       │   ├── ictAnalysis.ts      # Swing, OB, FVG, liquidity, BOS/CHoCH/MSS, P/D zone
 │       │   ├── intermarket.ts      # Cross-asset correlation analysis
 │       │   └── scenarioGenerator.ts# Probability scoring, scenario/invalidation builder
-│       └── components/
-│           ├── Chart/
-│           │   └── MarketChart.tsx # Candlestick + overlay chart
-│           └── DirectionPanel/
-│               ├── directionBias.ts    # Full analysis orchestrator
-│               └── DirectionPanel.tsx  # 9-section analysis UI
+│       ├── components/
+│       │   ├── Chart/
+│       │   │   └── MarketChart.tsx # Candlestick + overlay chart
+│       │   └── DirectionPanel/
+│       │       ├── directionBias.ts    # Full analysis orchestrator
+│       │       └── DirectionPanel.tsx  # 9-section analysis UI
+│       └── __tests__/              # Vitest — 14 scenario-based tests
 └── server/                         # Hono API server
     └── src/
         ├── index.ts                # Server entry
@@ -102,7 +121,19 @@ NQGDdirection/
 | Backend | Hono (Node.js) |
 | Data source | Yahoo Finance (via server proxy) |
 | Charts | lightweight-charts |
-| Testing | Vitest |
+| Testing | Vitest (14 tests) |
+
+---
+
+## UI Navigation
+
+### Asset tabs (top)
+Click any asset tab to switch the view. Each tab shows:
+- Colored dot — current structural bias (green = bullish, red = bearish, gray = ranging)
+- Direction arrow — ▲ / ▼ / ─
+
+### Timeframe sub-tabs (per asset)
+Switch between **15m** (intraday entry) and **4H** (higher timeframe trend) within the selected asset.
 
 ---
 
@@ -119,5 +150,20 @@ Each Direction Panel shows 9 sections:
 7. **대체 시나리오** — Reversal conditions and response plan
 8. **리스크 경고** — Data limitations, event risk (CPI, FOMC, NFP, etc.)
 9. **최종 판정** — 상승 / 하락 / 중립 with 3-sentence rationale
+
+---
+
+## Vercel Deployment Notes
+
+The frontend (static build) deploys to Vercel without changes. The Hono server requires conversion to Vercel Serverless Functions via `@hono/vercel` adapter.
+
+**Free tier feasibility (single user, 12h/day, Eco mode):**
+
+| Metric | Usage | Free limit | Status |
+|--------|-------|-----------|--------|
+| Function invocations | ~14,400/month | 100,000/month | ✅ |
+| Function duration | ~1.6 GB-hours | 100 GB-hours | ✅ |
+| Bandwidth | ~1 GB/month | 100 GB/month | ✅ |
+| Build minutes | ~60 min/month | 6,000 min/month | ✅ |
 
 > This tool is for analysis and educational purposes only. Nothing here constitutes investment advice.

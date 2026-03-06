@@ -19,6 +19,7 @@ The original repository (`NQGDdirection`) was a basic chart dashboard that displ
 | No ICT structure vocabulary | BOS, CHoCH, MSS, FVG were not modeled |
 | No scenario output | No actionable trade context |
 | Single scrolling page | Reading 5 assets of analysis was overwhelming |
+| Fixed 60s refresh | Yahoo Finance throttling risk on shared hosting |
 
 ### Objectives
 
@@ -83,11 +84,11 @@ Indicators can confirm but never override price structure. A score ≥ 55 → �
 ### Module Boundaries
 
 ```
-indicators.ts       → pure calculation, no state
-ictAnalysis.ts      → price structure analysis
-intermarket.ts      → cross-asset context (supplementary only)
+indicators.ts        → pure calculation, no state
+ictAnalysis.ts       → price structure analysis
+intermarket.ts       → cross-asset context (supplementary only)
 scenarioGenerator.ts → scoring + scenario assembly
-directionBias.ts    → orchestrates all modules, exposes FullDirectionResult
+directionBias.ts     → orchestrates all modules, exposes FullDirectionResult
 ```
 
 ---
@@ -120,7 +121,14 @@ Development was executed using **Pumasi** — a parallel development workflow wh
 | app-expand | `App.tsx` | 5-asset support, `computeFullAnalysis` wiring |
 | test-suite | `src/__tests__/` | 14 scenario-based tests |
 
-After all rounds: tab-based navigation was added to `App.tsx` (asset tabs + timeframe sub-tabs) and README / Procedure documentation was written.
+### Post-Pumasi — Direct edits
+
+| Change | Files | Detail |
+|--------|-------|--------|
+| Tab-based navigation | `App.tsx` | Asset tabs (NQ/ES/GC/SI/CL) + timeframe sub-tabs (15m/4H) |
+| Live/Eco toggle | `useMarketData.ts`, `App.tsx` | Configurable interval: 60s (Live) / 180s (Eco) |
+| Countdown timer | `App.tsx` | `useCountdown` hook, shows seconds to next fetch |
+| Documentation | `README.md`, `Procedure.md` | Project overview + full development log |
 
 ---
 
@@ -182,6 +190,15 @@ Yahoo Finance data can be incomplete or delayed for some symbols. Every analysis
 
 Five assets × two timeframes × 9 analysis sections = substantial content. A tab-based approach (asset tab → timeframe sub-tab) reduces cognitive load by surfacing one asset at a time. The bias dot and direction arrow on each tab give a quick status overview without switching.
 
+### Live / Eco toggle
+
+Yahoo Finance is a public API with no official SLA. Sustained 60-second polling from a shared hosting IP (e.g., Vercel) risks throttling or temporary blocks. The toggle lets users choose between freshness and reliability:
+
+- **Live (60s)** — For active market hours when real-time moves matter
+- **Eco (180s)** — For monitoring / off-hours, reduces API calls by 67%
+
+The countdown timer (`next Xs`) provides transparency — the user always knows when the next fetch will happen and does not need to guess whether data is stale.
+
 ---
 
 ## 7. File Change Summary
@@ -194,19 +211,59 @@ Five assets × two timeframes × 9 analysis sections = substantial content. A ta
 | `client/src/lib/scenarioGenerator.ts` | New | Scoring + scenario engine |
 | `client/src/components/DirectionPanel/directionBias.ts` | Modified | +computeFullAnalysis |
 | `client/src/components/DirectionPanel/DirectionPanel.tsx` | Modified | 9-section UI |
-| `client/src/hooks/useMarketData.ts` | Modified | 5 symbols, typed constants |
-| `client/src/App.tsx` | Modified | Tab navigation, 5 assets |
+| `client/src/hooks/useMarketData.ts` | Modified | 5 symbols, configurable interval, nextFetchAt |
+| `client/src/App.tsx` | Modified | Tab navigation, Live/Eco toggle, countdown |
 | `client/src/__tests__/*.test.ts` | New | 14 tests (3 files) |
 | `client/package.json` | Modified | +vitest devDependency |
+| `README.md` | New | Project overview, usage, deployment notes |
+| `Procedure.md` | New | Full development log (this file) |
 
-Total: +2,804 lines inserted, 85 lines removed across 13 files.
+Total commits: 4 — all pushed to `main`.
 
 ---
 
-## 8. Remaining Improvement Areas
+## 8. Vercel Deployment Analysis
 
-- **Kill zone timing**: Session context (London / NY open) is not yet wired into the analysis — the system prompt supports it but the UI has no session clock input
-- **Manual event risk input**: CPI / FOMC / NFP dates could be fetched from an economic calendar API and surfaced automatically
-- **Historical backtesting**: The scoring model is deterministic and could be backtested against historical OHLCV data to calibrate weights
-- **Breaker / mitigation block detection**: `ictAnalysis.ts` detects OBs but does not yet distinguish between breaker blocks and mitigation blocks
-- **EMA slope**: `getEMAAlignment` returns alignment state but not slope — slope (rising / falling) would add signal quality
+### Architecture mapping
+
+| Current | Vercel |
+|---------|--------|
+| `client/` React build | Static CDN (automatic) |
+| `server/` Hono Node.js | Serverless Functions via `@hono/vercel` |
+
+### Estimated usage — Eco mode, single user, 12h/day
+
+| Metric | Monthly usage | Free limit | Headroom |
+|--------|--------------|-----------|---------|
+| Function invocations | ~14,400 | 100,000 | 85% |
+| Function duration | ~1.6 GB-hours | 100 GB-hours | 98% |
+| Bandwidth | ~1 GB | 100 GB | 99% |
+| Build minutes | ~60 min | 6,000 min | 99% |
+
+**Free tier is sufficient** for single-user operation in Eco mode. Live mode (~43,200 invocations/month) also stays within limits but leaves less headroom for multiple simultaneous users.
+
+### Key risks
+
+1. **10-second timeout** — Vercel Hobby limits serverless functions to 10s. Yahoo Finance typically responds in <1s but can spike. Occasional timeouts are possible.
+2. **Shared IP throttling** — Multiple Vercel users share egress IPs. Yahoo Finance may rate-limit the shared pool.
+3. **Multi-user scale** — 3+ simultaneous users in Live mode exceeds 100,000 invocations/month.
+
+### Migration steps (not yet done)
+
+```bash
+npm install @hono/vercel
+# Create api/index.ts wrapping the Hono app with handle()
+# Create vercel.json with rewrite rules
+# Adjust client/vite.config.ts output path
+```
+
+---
+
+## 9. Remaining Improvement Areas
+
+- **Kill zone timing** — Session context (London / NY open) is not yet wired into the analysis
+- **Economic calendar integration** — CPI / FOMC / NFP dates could be auto-fetched and surfaced as event risk warnings
+- **Historical backtesting** — The scoring model is deterministic and could be backtested against historical OHLCV data to calibrate weights
+- **Breaker / mitigation block detection** — `ictAnalysis.ts` detects OBs but does not yet distinguish breaker blocks
+- **EMA slope** — `getEMAAlignment` returns alignment state but not slope direction
+- **Vercel deployment** — Migration to serverless functions not yet completed
