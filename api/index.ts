@@ -3,11 +3,11 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { marketRoutes } from './_lib/market'
 
-const app = new Hono()
+const app = new Hono().basePath('/api')
 
 app.use('*', cors({ origin: '*' }))
-app.route('/api/market', marketRoutes)
-app.get('/api/health', (c) => c.json({ ok: true }))
+app.route('/market', marketRoutes)
+app.get('/health', (c) => c.json({ ok: true }))
 
 export const config = { runtime: 'edge' }
 

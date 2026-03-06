@@ -128,6 +128,7 @@ Development was executed using **Pumasi** — a parallel development workflow wh
 | Tab-based navigation | `App.tsx` | Asset tabs (NQ/ES/GC/SI/CL) + timeframe sub-tabs (15m/4H) |
 | Live/Eco toggle | `useMarketData.ts`, `App.tsx` | Configurable interval: 60s (Live) / 180s (Eco) |
 | Countdown timer | `App.tsx` | `useCountdown` hook, shows seconds to next fetch |
+| Vercel deployment | `api/index.ts`, `api/_lib/market.ts`, `vercel.json`, `.vercelignore`, `package.json` | Hono Edge Function + rewrite; KOSPI/KOSDAQ tickers added |
 | Documentation | `README.md`, `Procedure.md` | Project overview + full development log |
 
 ---
@@ -248,14 +249,17 @@ Total commits: 4 — all pushed to `main`.
 2. **Shared IP throttling** — Multiple Vercel users share egress IPs. Yahoo Finance may rate-limit the shared pool.
 3. **Multi-user scale** — 3+ simultaneous users in Live mode exceeds 100,000 invocations/month.
 
-### Migration steps (not yet done)
+### Deployment — Completed
 
-```bash
-npm install @hono/vercel
-# Create api/index.ts wrapping the Hono app with handle()
-# Create vercel.json with rewrite rules
-# Adjust client/vite.config.ts output path
-```
+The Vercel migration has been completed and is running in production.
+
+- **Production URL** — https://nqgd-direction.vercel.app
+- **`api/index.ts`** — Hono Edge Function entrypoint using `.basePath('/api')`
+- **`api/_lib/market.ts`** — Yahoo Finance fetch logic for symbol and batch endpoints
+- **`vercel.json`** — build configuration plus rewrite rule (`/api/*` → `/api`)
+- **`.vercelignore`** — excludes `server/`, `node_modules/`, and `start.sh` from deployment upload
+
+The deployment uses `api/index.ts` plus a Vercel rewrite instead of a catch-all `[[...route]].ts` entry. This avoids a Vercel routing bug where catch-all Edge Functions did not reliably forward 2-level paths such as `/api/market/batch`, while the single-entry rewrite path routes those requests correctly.
 
 ---
 
@@ -263,7 +267,7 @@ npm install @hono/vercel
 
 - **Kill zone timing** — Session context (London / NY open) is not yet wired into the analysis
 - **Economic calendar integration** — CPI / FOMC / NFP dates could be auto-fetched and surfaced as event risk warnings
+- **KOSPI/KOSDAQ data quality** — `^KS11`, `^KQ11` were added to the dashboard, but Yahoo Finance may provide more limited intraday granularity for Korean indices than for US futures
 - **Historical backtesting** — The scoring model is deterministic and could be backtested against historical OHLCV data to calibrate weights
 - **Breaker / mitigation block detection** — `ictAnalysis.ts` detects OBs but does not yet distinguish breaker blocks
 - **EMA slope** — `getEMAAlignment` returns alignment state but not slope direction
-- **Vercel deployment** — Migration to serverless functions not yet completed
