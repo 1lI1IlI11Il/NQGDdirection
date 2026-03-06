@@ -1,5 +1,11 @@
-import { useMemo, useState, type ComponentProps } from 'react'
-import { SUPPORTED_SYMBOLS, useMarketData, type SupportedSymbol } from './hooks/useMarketData'
+import { useMemo, useState, useEffect, type ComponentProps } from 'react'
+import {
+  SUPPORTED_SYMBOLS,
+  REFRESH_INTERVAL_FAST_MS,
+  REFRESH_INTERVAL_SLOW_MS,
+  useMarketData,
+  type SupportedSymbol,
+} from './hooks/useMarketData'
 import { MarketChart } from './components/Chart/MarketChart'
 import { DirectionPanel } from './components/DirectionPanel/DirectionPanel'
 import { calculateAll, type OHLCVBar, type IndicatorResults } from './lib/indicators'
@@ -189,9 +195,26 @@ function AssetView({ symbol, label, data15m, data4H, lastFetch }: AssetViewProps
   )
 }
 
+function useCountdown(nextFetchAt: Date | null): number {
+  const [secondsLeft, setSecondsLeft] = useState(0)
+  useEffect(() => {
+    if (!nextFetchAt) return
+    const tick = () => {
+      setSecondsLeft(Math.max(0, Math.round((nextFetchAt.getTime() - Date.now()) / 1000)))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [nextFetchAt])
+  return secondsLeft
+}
+
 export default function App() {
-  const { data, loading, refreshing, lastFetch, refresh } = useMarketData()
+  const [liveMode, setLiveMode] = useState(true)
+  const intervalMs = liveMode ? REFRESH_INTERVAL_FAST_MS : REFRESH_INTERVAL_SLOW_MS
+  const { data, loading, refreshing, lastFetch, nextFetchAt, refresh } = useMarketData(intervalMs)
   const [activeTab, setActiveTab] = useState<SupportedSymbol>('NQ=F')
+  const countdown = useCountdown(nextFetchAt)
 
   const assetData = useMemo(() => {
     const prepared = Object.fromEntries(
@@ -248,18 +271,42 @@ export default function App() {
             Intraday Analysis · ICT Method · Murphy Intermarket
           </p>
         </div>
-        <button
-          onClick={() => { void refresh() }}
-          disabled={refreshing}
-          className={`text-xs border rounded px-3 py-1.5 flex items-center gap-1.5 transition-colors
-            ${refreshing
-              ? 'text-zinc-600 border-zinc-800 cursor-not-allowed'
-              : 'text-zinc-400 hover:text-zinc-200 border-zinc-700 cursor-pointer'
-            }`}
-        >
-          <span className={refreshing ? 'animate-spin inline-block' : ''}>↻</span>
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* 카운트다운 */}
+          {!loading && nextFetchAt && (
+            <span className="text-[11px] text-zinc-600 tabular-nums w-16 text-right">
+              {refreshing ? '…' : `next ${countdown}s`}
+            </span>
+          )}
+
+          {/* 수동 새로고침 */}
+          <button
+            onClick={() => { void refresh() }}
+            disabled={refreshing}
+            title="지금 즉시 데이터 갱신"
+            className={`text-xs border rounded px-2.5 py-1.5 flex items-center gap-1 transition-colors
+              ${refreshing
+                ? 'text-zinc-600 border-zinc-800 cursor-not-allowed'
+                : 'text-zinc-400 hover:text-zinc-200 border-zinc-700 cursor-pointer'
+              }`}
+          >
+            <span className={refreshing ? 'animate-spin inline-block' : ''}>↻</span>
+          </button>
+
+          {/* Live 토글 */}
+          <button
+            onClick={() => setLiveMode(v => !v)}
+            title={liveMode ? 'Live ON — 1분 갱신. 클릭 시 3분으로 전환' : 'Live OFF — 3분 갱신. 클릭 시 1분으로 전환'}
+            className={`flex items-center gap-2 text-xs border rounded px-3 py-1.5 transition-colors cursor-pointer
+              ${liveMode
+                ? 'bg-emerald-950 border-emerald-700 text-emerald-400'
+                : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-zinc-200'
+              }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${liveMode ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+            {liveMode ? 'Live · 1m' : 'Eco · 3m'}
+          </button>
+        </div>
       </header>
 
       {/* ── Asset tab bar ── */}

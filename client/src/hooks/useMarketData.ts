@@ -34,7 +34,8 @@ function aggregate1hTo4H(bars: OHLCVBar[]): OHLCVBar[] {
   return result
 }
 
-const REFRESH_INTERVAL_MS = 60_000
+export const REFRESH_INTERVAL_FAST_MS = 60_000   // Live ON  — 1분
+export const REFRESH_INTERVAL_SLOW_MS = 180_000  // Live OFF — 3분
 const FETCH_SYMBOLS_PARAM = 'NQ%3DF%2CGC%3DF%2CSI%3DF%2CCL%3DF%2CES%3DF'
 
 function mapSupportedSymbols<T>(mapper: (symbol: SupportedSymbol) => T): Record<SupportedSymbol, T> {
@@ -56,11 +57,12 @@ function to4HData(symbolData: SymbolData | undefined): SymbolData | null {
   }
 }
 
-export function useMarketData() {
+export function useMarketData(intervalMs: number = REFRESH_INTERVAL_FAST_MS) {
   const [data, setData] = useState<MarketDataState>(EMPTY_STATE)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
+  const [nextFetchAt, setNextFetchAt] = useState<Date | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchData = useCallback(async (manual = false) => {
@@ -84,32 +86,36 @@ export function useMarketData() {
         '4H': mapSupportedSymbols(symbol => to4HData(json1h[symbol])),
       })
 
-      setLastFetch(new Date())
+      const now = new Date()
+      setLastFetch(now)
+      setNextFetchAt(new Date(now.getTime() + intervalMs))
     } catch (err) {
       console.error('Failed to fetch market data:', err)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [intervalMs])
 
   const refresh = useCallback(() => fetchData(true), [fetchData])
 
+  // intervalMs가 바뀌면 타이머 재설정
   useEffect(() => {
     void fetchData()
     intervalRef.current = setInterval(() => {
       void fetchData()
-    }, REFRESH_INTERVAL_MS)
+    }, intervalMs)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [fetchData])
+  }, [fetchData, intervalMs])
 
   return {
     data,
     loading,
     refreshing,
     lastFetch,
+    nextFetchAt,
     refresh,
   }
 }
