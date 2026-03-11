@@ -26,7 +26,6 @@ interface SignalRow {
 interface SectionBlockProps {
   title: string
   children: ReactNode
-  first?: boolean
 }
 
 interface SectionFieldProps {
@@ -415,12 +414,12 @@ function getRiskToneClass(severity: EventRisk['severity']): string {
 }
 
 function SectionBlock(props: SectionBlockProps) {
-  const { title, children, first = false } = props
+  const { title, children } = props
 
   return (
-    <div className={first ? '' : 'border-t border-zinc-800 pt-4'}>
-      <p className="text-xs font-medium tracking-wide text-zinc-500">{title}</p>
-      <div className="mt-3 space-y-3">{children}</div>
+    <div className="rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">{title}</p>
+      <div className="mt-4 space-y-3">{children}</div>
     </div>
   )
 }
@@ -429,9 +428,9 @@ function SectionField(props: SectionFieldProps) {
   const { label, children, valueClassName = 'text-zinc-200', mono = false } = props
 
   return (
-    <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <div className={`mt-1 text-sm leading-5 ${mono ? 'font-mono' : ''} ${valueClassName}`}>
+    <div className="rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+      <div className={`mt-1.5 text-sm leading-6 ${mono ? 'font-mono' : ''} ${valueClassName}`}>
         {children}
       </div>
     </div>
@@ -448,23 +447,24 @@ function CompactDirectionPanel(props: Omit<DirectionPanelProps, 'fullResult'>) {
     signal.vwapValue === 0 ? 0 : ((signal.lastClose - signal.vwapValue) / signal.vwapValue) * 100
 
   return (
-    <section className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+    <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(39,39,42,0.72),rgba(24,24,27,0.94))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs tracking-wide text-zinc-500">{symbol}</p>
-          <h3 className="text-lg font-semibold text-zinc-100">Direction</h3>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">{symbol}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-zinc-100">Direction</h3>
+          <p className="mt-1 text-sm text-zinc-500">Condensed bias read for fast market scanning.</p>
         </div>
-        <div className={`rounded-md px-3 py-2 text-right ${badgeClass}`}>
-          <p className="text-xs font-medium tracking-wide">{directionLabel}</p>
+        <div className={`rounded-2xl px-3 py-2 text-right ${badgeClass}`}>
+          <p className="text-[11px] font-medium uppercase tracking-[0.2em]">{directionLabel}</p>
           <p className="text-sm font-semibold">{biasText}</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-5 grid gap-2">
         {rows.map((row) => (
           <div
             key={row.name}
-            className="grid grid-cols-[72px_1fr_12px] items-center gap-2 text-sm"
+            className="grid grid-cols-[72px_1fr_12px] items-center gap-2 rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5 text-sm"
           >
             <span className="text-zinc-400">{row.name}</span>
             <span className="text-zinc-200">{row.label}</span>
@@ -473,12 +473,12 @@ function CompactDirectionPanel(props: Omit<DirectionPanelProps, 'fullResult'>) {
         ))}
       </div>
 
-      <div className="mt-5">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <div className="mt-5 rounded-2xl border border-white/8 bg-black/20 p-4">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-500">
           ICT Analysis
         </p>
 
-        <div className="mb-3 flex items-center justify-between rounded-md bg-zinc-800/50 px-3 py-2">
+        <div className="mb-3 flex items-center justify-between rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
           <span className="text-xs text-zinc-400">Structure</span>
           <span
             className={`text-xs font-semibold ${
@@ -526,9 +526,9 @@ function CompactDirectionPanel(props: Omit<DirectionPanelProps, 'fullResult'>) {
         </div>
 
         {ictAnalysis.liquidityLevels.length > 0 && (
-          <div className="overflow-hidden rounded-md border border-zinc-800">
+          <div className="overflow-hidden rounded-xl border border-white/8">
             <table className="w-full text-xs">
-              <thead className="bg-zinc-800/70 text-zinc-400">
+              <thead className="bg-white/[0.04] text-zinc-400">
                 <tr>
                   <th className="px-2 py-1.5 text-left font-medium">Level</th>
                   <th className="px-2 py-1.5 text-right font-medium">Price</th>
@@ -537,7 +537,7 @@ function CompactDirectionPanel(props: Omit<DirectionPanelProps, 'fullResult'>) {
               </thead>
               <tbody>
                 {ictAnalysis.liquidityLevels.slice(0, 6).map((lvl, index) => (
-                  <tr key={`${lvl.label}-${lvl.price}-${index}`} className="border-t border-zinc-800">
+                  <tr key={`${lvl.label}-${lvl.price}-${index}`} className="border-t border-white/6">
                     <td className="px-2 py-1.5 text-zinc-300">{lvl.label}</td>
                     <td className="px-2 py-1.5 text-right font-mono text-zinc-200">
                       {lvl.price.toFixed(0)}
@@ -557,10 +557,10 @@ function CompactDirectionPanel(props: Omit<DirectionPanelProps, 'fullResult'>) {
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-300">
-        <span>Last: {signal.lastClose.toFixed(2)}</span>
-        <span>VWAP: {signal.vwapValue.toFixed(2)}</span>
-        <span>Δ: {deltaPercent.toFixed(2)}%</span>
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-300">
+        <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1">Last: {signal.lastClose.toFixed(2)}</span>
+        <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1">VWAP: {signal.vwapValue.toFixed(2)}</span>
+        <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1">Δ: {deltaPercent.toFixed(2)}%</span>
       </div>
     </section>
   )
@@ -584,22 +584,44 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
   const sslCount = ictAnalysis.liquidityLevels.filter((level) => level.type === 'SSL').length
 
   return (
-    <section className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+    <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(39,39,42,0.72),rgba(24,24,27,0.94))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs tracking-wide text-zinc-500">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
             {symbol} · {timeframe}
           </p>
-          <h3 className="text-lg font-semibold text-zinc-100">Direction Analysis</h3>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-zinc-100">Direction Analysis</h3>
+          <p className="mt-1 text-sm text-zinc-500">Structured market readout with scenario depth and risk context.</p>
         </div>
-        <div className={`rounded-md px-3 py-2 text-right ${badgeClass}`}>
-          <p className="text-xs font-medium tracking-wide">{directionLabel}</p>
+        <div className={`rounded-2xl px-3 py-2 text-right ${badgeClass}`}>
+          <p className="text-[11px] font-medium uppercase tracking-[0.2em]">{directionLabel}</p>
           <p className="text-sm font-semibold">{biasText}</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-4">
-        <SectionBlock title="1. 요약" first>
+      <div className="mt-5 grid gap-4">
+        <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Executive summary</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">{getFirstSentence(report.finalVerdict)}</p>
+            </div>
+            <div className="min-w-[160px] rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Probability</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-100">{report.probabilityScore.value}<span className="ml-1 text-sm text-zinc-500">/100</span></p>
+                </div>
+                <span className={`text-sm font-semibold ${getDirectionToneClass(report.direction)}`}>{report.direction}</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                <div className="h-full rounded-full bg-zinc-100" style={{ width: `${report.probabilityScore.value}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <SectionBlock title="1. 요약">
           <SectionField label="자산명">{report.asset}</SectionField>
           <SectionField label="현재 단기 방향" valueClassName={getDirectionToneClass(report.direction)}>
             <span className="font-semibold">{report.direction}</span>
@@ -607,9 +629,9 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
           <SectionField label="확률 점수" valueClassName="text-zinc-100">
             <span className="font-semibold">{report.probabilityScore.value}점</span>
           </SectionField>
-          <SectionField label="핵심 결론">{getFirstSentence(report.finalVerdict)}</SectionField>
         </SectionBlock>
 
+        <div className="grid gap-4 xl:grid-cols-2">
         <SectionBlock title="2. 시장 구조">
           <SectionField label="HTF 추세" valueClassName={getStructureToneClass(htfBias)}>
             <span className="font-semibold">{formatStructureBias(htfBias)}</span>
@@ -664,7 +686,9 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
           </SectionField>
           <SectionField label="Premium / Discount 위치">{formatPremiumDiscount(ictAnalysis.premiumDiscount)}</SectionField>
         </SectionBlock>
+        </div>
 
+        <div className="grid gap-4 xl:grid-cols-2">
         <SectionBlock title="4. 보조지표">
           <SectionField label="EMA(20 / 50 / 200) 정렬">{getEmaAlignmentText(ictAnalysis.emaContext)}</SectionField>
           <SectionField label="RSI 값">{getRsiText(signal)}</SectionField>
@@ -689,7 +713,9 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
             <SectionField label="인터마켓 데이터">데이터 없음</SectionField>
           )}
         </SectionBlock>
+        </div>
 
+        <div className="grid gap-4 xl:grid-cols-2">
         <SectionBlock title="6. 트레이드 시나리오 (1순위)">
           <SectionField label="방향" valueClassName={getDirectionToneClass(report.primaryScenario.direction)}>
             <span className="font-semibold">{report.primaryScenario.direction}</span>
@@ -712,7 +738,9 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
             {getTransitionText(report.primaryScenario, report.alternativeScenario)}
           </SectionField>
         </SectionBlock>
+        </div>
 
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionBlock title="8. 리스크 경고">
           <SectionField label="데이터 한계">
             {report.dataLimitations.length > 0 ? (
@@ -745,6 +773,7 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
         <SectionBlock title="9. 최종 판정">
           <p className="text-sm leading-5 text-zinc-200">{report.finalVerdict}</p>
         </SectionBlock>
+        </div>
       </div>
     </section>
   )

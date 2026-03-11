@@ -61,16 +61,16 @@ export function MarketChart({
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#0f0f0f" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: "#18181b" },
+        textColor: "#a1a1aa",
       },
       grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
+        vertLines: { color: "#27272a" },
+        horzLines: { color: "#27272a" },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: "#374151" },
-      timeScale: { borderColor: "#374151", timeVisible: true },
+      rightPriceScale: { borderColor: "#3f3f46" },
+      timeScale: { borderColor: "#3f3f46", timeVisible: true },
       width: containerRef.current.clientWidth,
       height,
     });
@@ -135,12 +135,12 @@ export function MarketChart({
 
     const rsiChart = createChart(rsiContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#0f0f0f" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: "#18181b" },
+        textColor: "#a1a1aa",
       },
       grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
+        vertLines: { color: "#27272a" },
+        horzLines: { color: "#27272a" },
       },
       width: containerRef.current.clientWidth,
       height: 120,
@@ -175,12 +175,12 @@ export function MarketChart({
 
     const macdChart = createChart(macdContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#0f0f0f" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: "#18181b" },
+        textColor: "#a1a1aa",
       },
       grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
+        vertLines: { color: "#27272a" },
+        horzLines: { color: "#27272a" },
       },
       width: containerRef.current.clientWidth,
       height: 100,
@@ -327,39 +327,31 @@ export function MarketChart({
       ictLinesRef.current.push(line);
     };
 
-    const nearestBullOB = (ictAnalysis as any).nearestBullOB;
+    const nearestBullOB = ictAnalysis.nearestBullOB;
     if (nearestBullOB) {
       add(nearestBullOB.high, "#22c55e", 1, LineStyle.Solid, "Bull OB");
       add(nearestBullOB.low, "#22c55e", 1, LineStyle.Dashed, "");
     }
 
-    const nearestBearOB = (ictAnalysis as any).nearestBearOB;
+    const nearestBearOB = ictAnalysis.nearestBearOB;
     if (nearestBearOB) {
       add(nearestBearOB.low, "#ef4444", 1, LineStyle.Solid, "Bear OB");
       add(nearestBearOB.high, "#ef4444", 1, LineStyle.Dashed, "");
     }
 
-    const unfilledFVGs = ((ictAnalysis as any).unfilledFVGs ?? []).slice(0, 4);
-    unfilledFVGs.forEach((fvg: any) => {
-      const top = fvg.top ?? fvg.high;
-      const bottom = fvg.bottom ?? fvg.low;
-      const direction = fvg.direction ?? fvg.type;
-      const bullish = direction === "bullish";
+    const unfilledFVGs = ictAnalysis.fvgs.filter((fvg) => !fvg.filled).slice(0, 4);
+    unfilledFVGs.forEach((fvg) => {
+      const bullish = fvg.type === "bullish";
       const color = bullish ? "#86efac" : "#fca5a5";
       const label = bullish ? "FVG+" : "FVG-";
 
-      if (typeof top === "number") {
-        add(top, color, 1, LineStyle.Dotted, label);
-      }
-      if (typeof bottom === "number") {
-        add(bottom, color, 1, LineStyle.Dotted, "");
-      }
+      add(fvg.top, color, 1, LineStyle.Dotted, label);
+      add(fvg.bottom, color, 1, LineStyle.Dotted, "");
     });
 
-    const liquidityLevels = ((ictAnalysis as any).liquidityLevels ?? []).slice(0, 4);
-    liquidityLevels.forEach((level: any) => {
-      const kind = level.kind ?? level.type;
-      const color = kind === "BSL" ? "#22d3ee" : "#facc15";
+    const liquidityLevels = ictAnalysis.liquidityLevels.slice(0, 4);
+    liquidityLevels.forEach((level) => {
+      const color = level.type === "BSL" ? "#22d3ee" : "#facc15";
       add(level.price, color, 1, LineStyle.Dashed, level.label ?? "");
     });
 
@@ -371,16 +363,22 @@ export function MarketChart({
   }, [ictAnalysis]);
 
   return (
-    <div className="flex flex-col gap-0">
-      <div className="bg-zinc-900 px-2 py-1 text-xs text-zinc-500 border-b border-zinc-800">
-        {symbol} — {timeframe ?? "15m"}
+    <div className="flex flex-col gap-0 overflow-hidden rounded-[28px] bg-transparent">
+      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Chart workspace</p>
+            <p className="mt-1 text-sm font-medium text-zinc-100">{symbol} — {timeframe ?? "15m"}</p>
+          </div>
+          <p className="text-xs text-zinc-500">Candles, VWAP, Bollinger, RSI, and MACD in one view.</p>
+        </div>
       </div>
       <div ref={containerRef} />
-      <div className="bg-zinc-900 px-2 text-xs text-zinc-600 border-t border-zinc-800">
+      <div className="border-t border-white/8 bg-white/[0.03] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
         RSI(14)
       </div>
       <div ref={rsiContainerRef} />
-      <div className="bg-zinc-900 px-2 text-xs text-zinc-600 border-t border-zinc-800">
+      <div className="border-t border-white/8 bg-white/[0.03] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
         MACD(12,26,9)
       </div>
       <div ref={macdContainerRef} />
