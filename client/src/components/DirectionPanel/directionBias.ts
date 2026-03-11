@@ -31,18 +31,18 @@ function getIntermarketConfirmationText(
   confirmsBias: IntermarketAnalysis['confirmsBias']
 ): string {
   if (confirmsBias === 'BULLISH') {
-    return '인터마켓 컨텍스트는 상승 확인을 보조하지만 최종 우선순위는 가격 구조(ICT)에 둡니다.'
+    return 'Intermarket context supports the bullish case, but final priority still belongs to price structure (ICT).'
   }
 
   if (confirmsBias === 'BEARISH') {
-    return '인터마켓 컨텍스트는 하락 확인을 보조하지만 최종 우선순위는 가격 구조(ICT)에 둡니다.'
+    return 'Intermarket context supports the bearish case, but final priority still belongs to price structure (ICT).'
   }
 
   if (confirmsBias === 'CONFLICTING') {
-    return '인터마켓 컨텍스트는 상충되어 방향 확인 신호로 사용하지 않고 가격 구조(ICT)를 우선합니다.'
+    return 'Intermarket context is conflicting, so directional confirmation takes a back seat to price structure (ICT).'
   }
 
-  return '인터마켓 컨텍스트는 뚜렷한 방향 확인을 제공하지 않아 가격 구조(ICT)를 우선합니다.'
+  return 'Intermarket context does not offer clear directional confirmation, so price structure (ICT) stays primary.'
 }
 
 function applyIntermarketSummary(

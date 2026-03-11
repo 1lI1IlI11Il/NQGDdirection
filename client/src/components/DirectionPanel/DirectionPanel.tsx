@@ -158,7 +158,7 @@ function formatPrice(value: number): string {
 
 function formatZone(zone: { low: number; high: number } | null): string {
   if (!zone) {
-    return '없음'
+    return 'None'
   }
 
   return `${formatPrice(zone.low)} - ${formatPrice(zone.high)}`
@@ -166,7 +166,7 @@ function formatZone(zone: { low: number; high: number } | null): string {
 
 function formatOrderBlock(block: OrderBlock | null): string {
   if (!block) {
-    return '없음'
+    return 'None'
   }
 
   return `${formatPrice(block.low)} - ${formatPrice(block.high)}`
@@ -177,11 +177,11 @@ function formatOptionalPrice(value: number | undefined): string {
 }
 
 function getDirectionToneClass(direction: Direction): string {
-  if (direction === '상승') {
+  if (direction === 'Bullish') {
     return 'text-emerald-400'
   }
 
-  if (direction === '하락') {
+  if (direction === 'Bearish') {
     return 'text-red-400'
   }
 
@@ -202,101 +202,101 @@ function getStructureToneClass(bias: StructureBias): string {
 
 function formatStructureBias(bias: StructureBias): string {
   if (bias === 'BULLISH') {
-    return '상승'
+    return 'Bullish'
   }
 
   if (bias === 'BEARISH') {
-    return '하락'
+    return 'Bearish'
   }
 
-  return '중립'
+  return 'Ranging'
 }
 
 function getEmaAlignmentText(emaContext: ICTAnalysis['emaContext']): string {
   if (!emaContext) {
-    return '데이터 없음'
+    return 'No data'
   }
 
   const emaValues = `${formatOptionalPrice(emaContext.ema20)} / ${formatOptionalPrice(emaContext.ema50)} / ${formatOptionalPrice(emaContext.ema200)}`
 
   if (emaContext.alignment === 'BULLISH') {
-    return `상승 정렬 (${emaValues})`
+    return `Bullish alignment (${emaValues})`
   }
 
   if (emaContext.alignment === 'BEARISH') {
-    return `하락 정렬 (${emaValues})`
+    return `Bearish alignment (${emaValues})`
   }
 
-  return `혼조 (${emaValues})`
+  return `Mixed alignment (${emaValues})`
 }
 
 function getRsiText(signal: DirectionSignal): string {
   if (signal.signals.rsi === 'oversold') {
-    return `${signal.rsiValue.toFixed(1)} (과매도)`
+    return `${signal.rsiValue.toFixed(1)} (oversold)`
   }
 
   if (signal.signals.rsi === 'overbought') {
-    return `${signal.rsiValue.toFixed(1)} (과매수)`
+    return `${signal.rsiValue.toFixed(1)} (overbought)`
   }
 
-  return `${signal.rsiValue.toFixed(1)} (중립)`
+  return `${signal.rsiValue.toFixed(1)} (neutral)`
 }
 
 function getMacdText(signal: DirectionSignal): string {
   if (signal.macdHistogramValue === undefined) {
     if (signal.signals.macd === 'bull') {
-      return '양수'
+      return 'Positive'
     }
 
     if (signal.signals.macd === 'bear') {
-      return '음수'
+      return 'Negative'
     }
 
-    return '중립'
+    return 'Neutral'
   }
 
   if (signal.macdHistogramValue > 0) {
-    return `${signal.macdHistogramValue.toFixed(3)} (양수)`
+    return `${signal.macdHistogramValue.toFixed(3)} (positive)`
   }
 
   if (signal.macdHistogramValue < 0) {
-    return `${signal.macdHistogramValue.toFixed(3)} (음수)`
+    return `${signal.macdHistogramValue.toFixed(3)} (negative)`
   }
 
-  return `${signal.macdHistogramValue.toFixed(3)} (중립)`
+  return `${signal.macdHistogramValue.toFixed(3)} (neutral)`
 }
 
 function getVwapText(signal: DirectionSignal, deltaPercent: number): string {
   if (signal.signals.vwap === 'bull') {
-    return `VWAP ${formatPrice(signal.vwapValue)} 상단 (+${deltaPercent.toFixed(2)}%)`
+    return `Above VWAP ${formatPrice(signal.vwapValue)} (+${deltaPercent.toFixed(2)}%)`
   }
 
   if (signal.signals.vwap === 'bear') {
-    return `VWAP ${formatPrice(signal.vwapValue)} 하단 (${deltaPercent.toFixed(2)}%)`
+    return `Below VWAP ${formatPrice(signal.vwapValue)} (${deltaPercent.toFixed(2)}%)`
   }
 
-  return `VWAP ${formatPrice(signal.vwapValue)} 부근`
+  return `Near VWAP ${formatPrice(signal.vwapValue)}`
 }
 
 function formatPremiumDiscount(zone: PremiumDiscountZone | null): string {
   if (!zone) {
-    return '데이터 없음'
+    return 'No data'
   }
 
   if (zone.currentZone === 'PREMIUM') {
-    return `프리미엄 (EQ ${formatPrice(zone.equilibrium)})`
+    return `Premium (EQ ${formatPrice(zone.equilibrium)})`
   }
 
   if (zone.currentZone === 'DISCOUNT') {
-    return `디스카운트 (EQ ${formatPrice(zone.equilibrium)})`
+    return `Discount (EQ ${formatPrice(zone.equilibrium)})`
   }
 
-  return `균형 구간 (EQ ${formatPrice(zone.equilibrium)})`
+  return `Equilibrium zone (EQ ${formatPrice(zone.equilibrium)})`
 }
 
 function formatLiquiditySummary(levels: ICTAnalysis['liquidityLevels']): string {
   if (levels.length === 0) {
-    return '없음'
+    return 'None'
   }
 
   return levels
@@ -312,7 +312,7 @@ function getRecentStructureShifts(events: StructureShiftEvent[]): StructureShift
 function getFirstSentence(text: string): string {
   const trimmed = text.trim()
   if (trimmed.length === 0) {
-    return '요약 없음'
+    return 'No summary'
   }
 
   const match = trimmed.match(/^.*?[.!?](?:\s|$)/)
@@ -321,7 +321,7 @@ function getFirstSentence(text: string): string {
 
 function formatTargets(targets: number[]): string {
   if (targets.length === 0) {
-    return '없음'
+    return 'None'
   }
 
   return targets.map((target) => formatPrice(target)).join(' / ')
@@ -329,15 +329,15 @@ function formatTargets(targets: number[]): string {
 
 function formatStopLoss(direction: Direction, stopLoss: number | null): string {
   if (stopLoss === null) {
-    return '별도 기준 없음'
+    return 'No explicit stop'
   }
 
-  if (direction === '상승') {
-    return `${formatPrice(stopLoss)} 하향 이탈`
+  if (direction === 'Bullish') {
+    return `Break below ${formatPrice(stopLoss)}`
   }
 
-  if (direction === '하락') {
-    return `${formatPrice(stopLoss)} 상향 돌파`
+  if (direction === 'Bearish') {
+    return `Break above ${formatPrice(stopLoss)}`
   }
 
   return formatPrice(stopLoss)
@@ -345,7 +345,7 @@ function formatStopLoss(direction: Direction, stopLoss: number | null): string {
 
 function getAlternativeConditionText(scenario: TradeScenario): string {
   if (scenario.entryZone) {
-    return `${formatZone(scenario.entryZone)} 구간에서 ${scenario.direction} 구조 확인 시 대체 시나리오를 검토합니다. ${scenario.rationale}`
+    return `Review the alternative scenario if ${scenario.direction.toLowerCase()} structure confirms around ${formatZone(scenario.entryZone)}. ${scenario.rationale}`
   }
 
   return scenario.rationale
@@ -353,52 +353,52 @@ function getAlternativeConditionText(scenario: TradeScenario): string {
 
 function getTransitionText(primaryScenario: TradeScenario, alternativeScenario: TradeScenario): string {
   if (alternativeScenario.entryZone) {
-    return `${primaryScenario.invalidationCondition} 이후 ${formatZone(alternativeScenario.entryZone)} 구간 재확인이 전환 기준입니다.`
+    return `Use a retest of ${formatZone(alternativeScenario.entryZone)} as the transition trigger after: ${primaryScenario.invalidationCondition}`
   }
 
-  return `${primaryScenario.invalidationCondition} 이후 반대 방향 구조가 유지되면 전환을 검토합니다.`
+  return `Consider the transition if opposite-side structure holds after: ${primaryScenario.invalidationCondition}`
 }
 
 function getIntermarketCorrelationText(
   correlation: NonNullable<FullDirectionResult['intermarket']>['nqSpCorrelation']
 ): string {
   if (correlation === 'CONVERGING') {
-    return '동조'
+    return 'Converging'
   }
 
   if (correlation === 'DIVERGING') {
-    return '비동조'
+    return 'Diverging'
   }
 
-  return '미확인'
+  return 'Unconfirmed'
 }
 
 function getRelativeStrengthText(
   strength: NonNullable<FullDirectionResult['intermarket']>['goldSilverRelativeStrength']
 ): string {
   if (strength === 'GOLD_LEADING') {
-    return '금 우위'
+    return 'Gold leading'
   }
 
   if (strength === 'SILVER_LEADING') {
-    return '은 우위'
+    return 'Silver leading'
   }
 
-  return '중립'
+  return 'Neutral'
 }
 
 function getRiskSentimentText(
   sentiment: NonNullable<FullDirectionResult['intermarket']>['oilRiskSentiment']
 ): string {
   if (sentiment === 'RISK_ON') {
-    return '위험선호'
+    return 'Risk-on'
   }
 
   if (sentiment === 'RISK_OFF') {
-    return '위험회피'
+    return 'Risk-off'
   }
 
-  return '중립'
+  return 'Neutral'
 }
 
 function getRiskToneClass(severity: EventRisk['severity']): string {
@@ -621,22 +621,22 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
           </div>
         </div>
 
-        <SectionBlock title="1. 요약">
-          <SectionField label="자산명">{report.asset}</SectionField>
-          <SectionField label="현재 단기 방향" valueClassName={getDirectionToneClass(report.direction)}>
+        <SectionBlock title="1. Summary">
+          <SectionField label="Asset">{report.asset}</SectionField>
+          <SectionField label="Current Direction" valueClassName={getDirectionToneClass(report.direction)}>
             <span className="font-semibold">{report.direction}</span>
           </SectionField>
-          <SectionField label="확률 점수" valueClassName="text-zinc-100">
-            <span className="font-semibold">{report.probabilityScore.value}점</span>
+          <SectionField label="Probability Score" valueClassName="text-zinc-100">
+            <span className="font-semibold">{report.probabilityScore.value} pts</span>
           </SectionField>
         </SectionBlock>
 
         <div className="grid gap-4 xl:grid-cols-2">
-        <SectionBlock title="2. 시장 구조">
-          <SectionField label="HTF 추세" valueClassName={getStructureToneClass(htfBias)}>
+        <SectionBlock title="2. Market Structure">
+          <SectionField label="HTF Bias" valueClassName={getStructureToneClass(htfBias)}>
             <span className="font-semibold">{formatStructureBias(htfBias)}</span>
           </SectionField>
-          <SectionField label="LTF 구조" valueClassName={getStructureToneClass(ictAnalysis.structureBias)}>
+          <SectionField label="LTF Structure" valueClassName={getStructureToneClass(ictAnalysis.structureBias)}>
             <span className="font-semibold">{formatStructureBias(ictAnalysis.structureBias)}</span>
           </SectionField>
           <SectionField label="BOS / CHoCH / MSS">
@@ -653,20 +653,20 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
                 ))}
               </div>
             ) : (
-              '최근 구조 전환 이벤트 없음'
+              'No recent structure-shift events'
             )}
           </SectionField>
-          <SectionField label="유동성 위치">{formatLiquiditySummary(ictAnalysis.liquidityLevels)}</SectionField>
+          <SectionField label="Liquidity Position">{formatLiquiditySummary(ictAnalysis.liquidityLevels)}</SectionField>
         </SectionBlock>
 
-        <SectionBlock title="3. ICT 체크">
+        <SectionBlock title="3. ICT Checks">
           <SectionField label="Liquidity (BSL / SSL)">
-            BSL {bslCount}개 / SSL {sslCount}개
+            BSL {bslCount} / SSL {sslCount}
           </SectionField>
-          <SectionField label="FVG 수량">
-            Bullish {bullishFvgs}개 / Bearish {bearishFvgs}개
+          <SectionField label="FVG Count">
+            Bullish {bullishFvgs} / Bearish {bearishFvgs}
           </SectionField>
-          <SectionField label="Order Block 레인지">
+          <SectionField label="Order Block Range">
             <div className="space-y-1">
               <p>
                 <span className="text-zinc-400">Bull OB</span>
@@ -684,65 +684,65 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
               </p>
             </div>
           </SectionField>
-          <SectionField label="Premium / Discount 위치">{formatPremiumDiscount(ictAnalysis.premiumDiscount)}</SectionField>
+          <SectionField label="Premium / Discount Zone">{formatPremiumDiscount(ictAnalysis.premiumDiscount)}</SectionField>
         </SectionBlock>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-        <SectionBlock title="4. 보조지표">
-          <SectionField label="EMA(20 / 50 / 200) 정렬">{getEmaAlignmentText(ictAnalysis.emaContext)}</SectionField>
-          <SectionField label="RSI 값">{getRsiText(signal)}</SectionField>
-          <SectionField label="MACD 히스토그램">{getMacdText(signal)}</SectionField>
-          <SectionField label="VWAP 위치">{getVwapText(signal, deltaPercent)}</SectionField>
+        <SectionBlock title="4. Indicator Readings">
+          <SectionField label="EMA(20 / 50 / 200) Alignment">{getEmaAlignmentText(ictAnalysis.emaContext)}</SectionField>
+          <SectionField label="RSI Reading">{getRsiText(signal)}</SectionField>
+          <SectionField label="MACD Histogram">{getMacdText(signal)}</SectionField>
+          <SectionField label="VWAP Position">{getVwapText(signal, deltaPercent)}</SectionField>
         </SectionBlock>
 
-        <SectionBlock title="5. 인터마켓">
+        <SectionBlock title="5. Intermarket">
           {intermarket ? (
             <>
-              <SectionField label="NQ-SP500 동조 / 비동조">
+              <SectionField label="NQ-S&P 500 Correlation">
                 {getIntermarketCorrelationText(intermarket.nqSpCorrelation)}
               </SectionField>
-              <SectionField label="금-은 상대강도">
+              <SectionField label="Gold-Silver Relative Strength">
                 {getRelativeStrengthText(intermarket.goldSilverRelativeStrength)}
               </SectionField>
-              <SectionField label="원유 위험선호">
+              <SectionField label="Oil Risk Sentiment">
                 {getRiskSentimentText(intermarket.oilRiskSentiment)}
               </SectionField>
             </>
           ) : (
-            <SectionField label="인터마켓 데이터">데이터 없음</SectionField>
+            <SectionField label="Intermarket Data">No data</SectionField>
           )}
         </SectionBlock>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-        <SectionBlock title="6. 트레이드 시나리오 (1순위)">
-          <SectionField label="방향" valueClassName={getDirectionToneClass(report.primaryScenario.direction)}>
+        <SectionBlock title="6. Primary Trade Scenario">
+          <SectionField label="Direction" valueClassName={getDirectionToneClass(report.primaryScenario.direction)}>
             <span className="font-semibold">{report.primaryScenario.direction}</span>
           </SectionField>
-          <SectionField label="진입 구간" mono>
+          <SectionField label="Entry Zone" mono>
             {formatZone(report.primaryScenario.entryZone)}
           </SectionField>
-          <SectionField label="손절 기준" mono>
+          <SectionField label="Stop Condition" mono>
             {formatStopLoss(report.primaryScenario.direction, report.primaryScenario.stopLoss)}
           </SectionField>
-          <SectionField label="목표 구간" mono>
+          <SectionField label="Target Zone" mono>
             {formatTargets(report.primaryScenario.targets)}
           </SectionField>
-          <SectionField label="무효화 조건">{report.primaryScenario.invalidationCondition}</SectionField>
+          <SectionField label="Invalidation">{report.primaryScenario.invalidationCondition}</SectionField>
         </SectionBlock>
 
-        <SectionBlock title="7. 대체 시나리오 (2순위)">
-          <SectionField label="반대 방향 조건">{getAlternativeConditionText(report.alternativeScenario)}</SectionField>
-          <SectionField label="전환 조건">
+        <SectionBlock title="7. Alternative Scenario">
+          <SectionField label="Opposite-Side Trigger">{getAlternativeConditionText(report.alternativeScenario)}</SectionField>
+          <SectionField label="Transition Condition">
             {getTransitionText(report.primaryScenario, report.alternativeScenario)}
           </SectionField>
         </SectionBlock>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <SectionBlock title="8. 리스크 경고">
-          <SectionField label="데이터 한계">
+        <SectionBlock title="8. Risk Alerts">
+          <SectionField label="Data Limitations">
             {report.dataLimitations.length > 0 ? (
               <div className="space-y-1">
                 {report.dataLimitations.map((limitation) => (
@@ -752,10 +752,10 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
                 ))}
               </div>
             ) : (
-              '추가 데이터 한계 없음'
+              'No additional data limitations'
             )}
           </SectionField>
-          <SectionField label="이벤트 리스크">
+          <SectionField label="Event Risk">
             {report.eventRisks.length > 0 ? (
               <div className="space-y-1">
                 {report.eventRisks.map((risk) => (
@@ -765,12 +765,12 @@ function FullDirectionPanel(props: DirectionPanelProps & { fullResult: FullDirec
                 ))}
               </div>
             ) : (
-              '특이 이벤트 리스크 없음'
+              'No notable event risk'
             )}
           </SectionField>
         </SectionBlock>
 
-        <SectionBlock title="9. 최종 판정">
+        <SectionBlock title="9. Final Verdict">
           <p className="text-sm leading-5 text-zinc-200">{report.finalVerdict}</p>
         </SectionBlock>
         </div>

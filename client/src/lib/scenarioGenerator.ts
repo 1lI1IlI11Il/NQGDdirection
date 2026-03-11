@@ -1,7 +1,7 @@
 import type { ICTAnalysis, StructureBias } from './ictAnalysis'
 import type { DirectionSignal } from '../components/DirectionPanel/directionBias'
 
-export type Direction = '상승' | '하락' | '중립'
+export type Direction = 'Bullish' | 'Bearish' | 'Neutral'
 
 export interface TradeScenario {
   rank: 1 | 2
@@ -44,7 +44,7 @@ export interface AnalysisReport {
   generatedAt: number
 }
 
-type DirectionalBias = Exclude<Direction, '중립'>
+type DirectionalBias = Exclude<Direction, 'Neutral'>
 type PriceZone = TradeScenario['entryZone']
 type ScoreBreakdown = ProbabilityScore['breakdown']
 type FvgSummary = {
@@ -91,7 +91,7 @@ function formatPrice(value: number): string {
 
 function formatZone(zone: PriceZone): string {
   if (!zone) {
-    return '관찰 구간 미확정'
+    return 'Observation zone not defined'
   }
 
   return `${formatPrice(zone.low)}-${formatPrice(zone.high)}`
@@ -99,22 +99,22 @@ function formatZone(zone: PriceZone): string {
 
 function toDirection(bias: StructureBias): Direction {
   if (bias === 'BULLISH') {
-    return '상승'
+    return 'Bullish'
   }
 
   if (bias === 'BEARISH') {
-    return '하락'
+    return 'Bearish'
   }
 
-  return '중립'
+  return 'Neutral'
 }
 
 function toStructureBias(direction: DirectionalBias): StructureBias {
-  return direction === '상승' ? 'BULLISH' : 'BEARISH'
+  return direction === 'Bullish' ? 'BULLISH' : 'BEARISH'
 }
 
 function getOppositeDirection(direction: DirectionalBias): DirectionalBias {
-  return direction === '상승' ? '하락' : '상승'
+  return direction === 'Bullish' ? 'Bearish' : 'Bullish'
 }
 
 function createZone(low: number, high: number): PriceZone {
@@ -151,14 +151,14 @@ function getDirectionalOrderBlock(
   ictAnalysis: ICTAnalysis,
   direction: DirectionalBias
 ): ICTAnalysis['nearestBullOB'] {
-  return direction === '상승' ? ictAnalysis.nearestBullOB : ictAnalysis.nearestBearOB
+  return direction === 'Bullish' ? ictAnalysis.nearestBullOB : ictAnalysis.nearestBearOB
 }
 
 function getOppositeOrderBlock(
   ictAnalysis: ICTAnalysis,
   direction: DirectionalBias
 ): ICTAnalysis['nearestBullOB'] {
-  return direction === '상승' ? ictAnalysis.nearestBearOB : ictAnalysis.nearestBullOB
+  return direction === 'Bullish' ? ictAnalysis.nearestBearOB : ictAnalysis.nearestBullOB
 }
 
 function buildDirectionalBreakdown(
@@ -205,7 +205,7 @@ function buildDirectionalBreakdown(
         : 0
 
   const alignedIndicatorScore =
-    direction === '상승' ? indicatorSignal.score : -indicatorSignal.score
+    direction === 'Bullish' ? indicatorSignal.score : -indicatorSignal.score
   const indicatorConfirmation = Math.round(
     (clamp(alignedIndicatorScore, 0, INDICATOR_SCORE_LIMIT) / INDICATOR_SCORE_LIMIT) *
       PROBABILITY_WEIGHTS.indicatorConfirmation
@@ -316,7 +316,7 @@ function pickProbabilityScore(
       return bearish
     }
 
-    return toDirection(ictAnalysis.structureBias) === '하락' ? bearish : bullish
+      return toDirection(ictAnalysis.structureBias) === 'Bearish' ? bearish : bullish
   }
 
   return bullish.value > bearish.value ? bullish : bearish
@@ -328,7 +328,7 @@ function getDirectionalTargets(
   entryZone: PriceZone
 ): number[] {
   const directionalLiquidity =
-    direction === '상승'
+    direction === 'Bullish'
       ? ictAnalysis.liquidityLevels
           .filter((level) => level.type === 'BSL' && level.price > ictAnalysis.currentPrice)
           .sort((a, b) => a.price - b.price)
@@ -341,11 +341,11 @@ function getDirectionalTargets(
     return targets
   }
 
-  if (direction === '상승' && ictAnalysis.nearestBearOB) {
+  if (direction === 'Bullish' && ictAnalysis.nearestBearOB) {
     return [roundPrice(ictAnalysis.nearestBearOB.low), roundPrice(ictAnalysis.nearestBearOB.high)]
   }
 
-  if (direction === '하락' && ictAnalysis.nearestBullOB) {
+  if (direction === 'Bearish' && ictAnalysis.nearestBullOB) {
     return [roundPrice(ictAnalysis.nearestBullOB.high), roundPrice(ictAnalysis.nearestBullOB.low)]
   }
 
@@ -356,7 +356,7 @@ function getDirectionalTargets(
 
   return FALLBACK_TARGET_MULTIPLIERS.map((multiplier) =>
     roundPrice(
-      direction === '상승'
+      direction === 'Bullish'
         ? ictAnalysis.currentPrice + zoneSize * multiplier
         : ictAnalysis.currentPrice - zoneSize * multiplier
     )
@@ -386,15 +386,15 @@ function dedupeTargets(values: number[]): number[] {
 }
 
 function getScenarioZone(ictAnalysis: ICTAnalysis, direction: Direction): PriceZone {
-  if (direction === '상승' && ictAnalysis.nearestBullOB) {
+  if (direction === 'Bullish' && ictAnalysis.nearestBullOB) {
     return createZone(ictAnalysis.nearestBullOB.low, ictAnalysis.nearestBullOB.high)
   }
 
-  if (direction === '하락' && ictAnalysis.nearestBearOB) {
+  if (direction === 'Bearish' && ictAnalysis.nearestBearOB) {
     return createZone(ictAnalysis.nearestBearOB.low, ictAnalysis.nearestBearOB.high)
   }
 
-  if (direction === '중립' && ictAnalysis.nearestBullOB && ictAnalysis.nearestBearOB) {
+  if (direction === 'Neutral' && ictAnalysis.nearestBullOB && ictAnalysis.nearestBearOB) {
     return createZone(ictAnalysis.nearestBullOB.high, ictAnalysis.nearestBearOB.low)
   }
 
@@ -402,12 +402,12 @@ function getScenarioZone(ictAnalysis: ICTAnalysis, direction: Direction): PriceZ
 }
 
 function getScenarioStopLoss(direction: Direction, entryZone: PriceZone): number | null {
-  if (!entryZone || direction === '중립') {
+  if (!entryZone || direction === 'Neutral') {
     return null
   }
 
   const buffer = Math.max(getZoneSize(entryZone) * STOP_BUFFER_RATIO, 0)
-  if (direction === '상승') {
+  if (direction === 'Bullish') {
     return roundPrice(entryZone.low - buffer)
   }
 
@@ -419,27 +419,27 @@ function buildInvalidationCondition(
   direction: Direction,
   entryZone: PriceZone
 ): string {
-  if (direction === '상승') {
+  if (direction === 'Bullish') {
     if (!entryZone) {
-      return `${asset}가 최근 저점 구조를 회복하지 못하면 상승 해석의 근거가 약화됩니다.`
+      return `${asset} loses its bullish case if price fails to reclaim the recent swing-low structure.`
     }
 
-    return `${asset}가 ${formatPrice(entryZone.low)} 아래에서 종가 기준으로 유지되면 상승 시나리오의 전제가 약화됩니다.`
+    return `${asset} weakens the bullish setup if it closes and holds below ${formatPrice(entryZone.low)}.`
   }
 
-  if (direction === '하락') {
+  if (direction === 'Bearish') {
     if (!entryZone) {
-      return `${asset}가 최근 고점 저항을 다시 돌파하면 하락 해석의 근거가 약화됩니다.`
+      return `${asset} weakens the bearish case if price reclaims the recent swing-high resistance.`
     }
 
-    return `${asset}가 ${formatPrice(entryZone.high)} 위에서 종가 기준으로 유지되면 하락 시나리오의 전제가 약화됩니다.`
+    return `${asset} weakens the bearish setup if it closes and holds above ${formatPrice(entryZone.high)}.`
   }
 
   if (entryZone) {
-    return `${asset}가 ${formatZone(entryZone)} 균형 구간을 종가 기준으로 이탈하면 중립 해석의 전제가 약화됩니다.`
+    return `${asset} weakens the neutral case if it closes outside the ${formatZone(entryZone)} balance zone.`
   }
 
-  return `${asset}의 가격이 한쪽 구조로 명확하게 확장되면 중립 해석의 전제가 약화됩니다.`
+  return `${asset} weakens the neutral case once price expands clearly into one-sided structure.`
 }
 
 function buildScenarioRationale(
@@ -452,23 +452,23 @@ function buildScenarioRationale(
 ): string {
   const confidenceText =
     probability >= 70
-      ? '상위 구조와 보조 확인이 비교적 잘 정렬된 상태입니다.'
+      ? 'Higher-timeframe structure and secondary confirmation are aligned well.'
       : probability >= 55
-        ? '우세 방향은 존재하지만 확인 신호가 완전히 일치하지는 않습니다.'
-        : '우위는 제한적이어서 반대 시나리오와 함께 해석할 필요가 있습니다.'
+        ? 'There is directional edge, but the confirmation signals are not fully aligned.'
+        : 'The edge is limited, so the opposing scenario still deserves attention.'
 
-  if (direction === '상승') {
-    const zoneText = entryZone ? `${formatZone(entryZone)} bullish OB` : '근접 bullish OB 부재'
-    return `${asset}는 ${zoneText}를 기준으로 하단 지지가 유지될 때 상단 유동성 탐색 가능성이 남아 있습니다. ${isAlternative ? '주 시나리오가 약화될 때 확인할 대안 흐름입니다.' : confidenceText}`
+  if (direction === 'Bullish') {
+    const zoneText = entryZone ? `${formatZone(entryZone)} bullish OB` : 'no nearby bullish OB'
+    return `${asset} can continue probing upside liquidity while support holds around ${zoneText}. ${isAlternative ? 'This becomes the fallback path if the primary scenario starts to fail.' : confidenceText}`
   }
 
-  if (direction === '하락') {
-    const zoneText = entryZone ? `${formatZone(entryZone)} bearish OB` : '근접 bearish OB 부재'
-    return `${asset}는 ${zoneText}를 기준으로 상단 저항이 유지될 때 하단 유동성 회수 가능성이 남아 있습니다. ${isAlternative ? '주 시나리오가 약화될 때 확인할 대안 흐름입니다.' : confidenceText}`
+  if (direction === 'Bearish') {
+    const zoneText = entryZone ? `${formatZone(entryZone)} bearish OB` : 'no nearby bearish OB'
+    return `${asset} can continue sweeping downside liquidity while resistance holds around ${zoneText}. ${isAlternative ? 'This becomes the fallback path if the primary scenario starts to fail.' : confidenceText}`
   }
 
   const liquidityCount = ictAnalysis.liquidityLevels.length
-  return `${asset}는 양방향 오더블록과 유동성 레벨이 공존해 단기 균형 구간 해석이 우세합니다. ${liquidityCount > 0 ? '가까운 유동성 레벨을 기준으로 범위 확장 여부를 관찰하는 시나리오입니다.' : '가까운 유동성 단서가 제한적이어서 구조 변화 확인이 우선입니다.'}`
+  return `${asset} is trading in a short-term balance regime with order blocks and liquidity resting on both sides. ${liquidityCount > 0 ? 'Watch the nearest liquidity levels for a range expansion trigger.' : 'Nearby liquidity clues are limited, so structural change matters more than range assumptions.'}`
 }
 
 function buildScenario(
@@ -482,7 +482,7 @@ function buildScenario(
   const entryZone = getScenarioZone(ictAnalysis, direction)
   const stopLoss = getScenarioStopLoss(direction, entryZone)
   const targets = dedupeTargets(
-    direction === '중립'
+      direction === 'Neutral'
       ? getNeutralTargets(ictAnalysis)
       : getDirectionalTargets(ictAnalysis, direction, entryZone)
   )
@@ -503,16 +503,16 @@ function getAlternativeDirection(
   primaryDirection: Direction,
   ictAnalysis: ICTAnalysis
 ): DirectionalBias {
-  if (primaryDirection === '상승') {
-    return '하락'
+  if (primaryDirection === 'Bullish') {
+    return 'Bearish'
   }
 
-  if (primaryDirection === '하락') {
-    return '상승'
+  if (primaryDirection === 'Bearish') {
+    return 'Bullish'
   }
 
   const ictDirection = toDirection(ictAnalysis.structureBias)
-  if (ictDirection === '상승' || ictDirection === '하락') {
+  if (ictDirection === 'Bullish' || ictDirection === 'Bearish') {
     return ictDirection
   }
 
@@ -523,22 +523,22 @@ function getAlternativeDirection(
     Number(ictAnalysis.nearestBearOB !== null) +
     ictAnalysis.fvgs.filter((gap) => gap.type === 'bearish' && !gap.filled).length
 
-  return bullishTilt >= bearishTilt ? '상승' : '하락'
+  return bullishTilt >= bearishTilt ? 'Bullish' : 'Bearish'
 }
 
 function collectReportLimitations(ictAnalysis: ICTAnalysis): string[] {
   const limitations: string[] = []
 
   if (!ictAnalysis.nearestBullOB && !ictAnalysis.nearestBearOB) {
-    limitations.push('근접 오더블록이 없어 시나리오 구간의 정밀도가 낮습니다.')
+    limitations.push('No nearby order block is available, so the scenario zone is less precise.')
   }
 
   if (ictAnalysis.fvgs.length === 0) {
-    limitations.push('활성 FVG가 없어 유동성 이동 방향의 추가 확인이 제한됩니다.')
+    limitations.push('No active FVG is available, so liquidity direction has less confirmation.')
   }
 
   if (ictAnalysis.liquidityLevels.length < 2) {
-    limitations.push('가까운 유동성 레벨이 적어 목표 구간 해석 범위가 좁습니다.')
+    limitations.push('There are too few nearby liquidity levels to define target zones with confidence.')
   }
 
   return limitations
@@ -555,10 +555,10 @@ function buildFinalVerdict(params: {
   const { asset, timeframe, probabilityScore, primaryScenario, eventRisks, dataLimitations } = params
   const keyTarget = primaryScenario.targets[0]
   const verdictParts = [
-    `${asset} ${timeframe} 기준 우세 해석은 ${probabilityScore.direction}이며, 확률 점수는 ${probabilityScore.value}점입니다.`,
+    `${asset} on ${timeframe} currently favors a ${probabilityScore.direction.toLowerCase()} read with a probability score of ${probabilityScore.value}.`,
     primaryScenario.entryZone
-      ? `${formatZone(primaryScenario.entryZone)} 구간과 ${keyTarget !== undefined ? `${formatPrice(keyTarget)} 부근` : '가까운 유동성'}이 핵심 관찰 영역입니다.`
-      : '근접 오더블록이 제한적이어서 구조 유지 여부 자체가 핵심 관찰 포인트입니다.'
+      ? `${formatZone(primaryScenario.entryZone)} and ${keyTarget !== undefined ? `the ${formatPrice(keyTarget)} area` : 'nearby liquidity'} are the key zones to monitor.`
+      : 'Nearby order-block context is limited, so structure retention itself is the main thing to watch.'
   ]
 
   const elevatedRiskDescriptions = eventRisks
@@ -567,7 +567,7 @@ function buildFinalVerdict(params: {
   const cautionSources = [...elevatedRiskDescriptions, ...dataLimitations].slice(0, 2)
 
   if (cautionSources.length > 0) {
-    verdictParts.push(`다만 ${cautionSources.join(', ')} 변수로 해석 신뢰도가 달라질 수 있습니다.`)
+    verdictParts.push(`Confidence can shift if ${cautionSources.join(', ')} changes the market context.`)
   }
 
   return verdictParts.join(' ')
@@ -580,15 +580,15 @@ export function computeProbabilityScore(
   indicatorSignal: DirectionSignal
 ): ProbabilityScore {
   const bullish = toProbabilityScore(
-    '상승',
-    buildDirectionalBreakdown('상승', htfBias, ltfBias, ictAnalysis, indicatorSignal)
+    'Bullish',
+    buildDirectionalBreakdown('Bullish', htfBias, ltfBias, ictAnalysis, indicatorSignal)
   )
   const bearish = toProbabilityScore(
-    '하락',
-    buildDirectionalBreakdown('하락', htfBias, ltfBias, ictAnalysis, indicatorSignal)
+    'Bearish',
+    buildDirectionalBreakdown('Bearish', htfBias, ltfBias, ictAnalysis, indicatorSignal)
   )
   const neutral = toProbabilityScore(
-    '중립',
+    'Neutral',
     buildNeutralBreakdown(htfBias, ltfBias, ictAnalysis, indicatorSignal)
   )
 
@@ -674,19 +674,19 @@ export function detectDataLimitations(params: {
   const limitations: string[] = []
 
   if (params.htfBarsCount < MIN_HTF_BARS) {
-    limitations.push(`상위 타임프레임 봉 수가 ${MIN_HTF_BARS}개 미만이라 구조 해석 신뢰도가 낮습니다.`)
+    limitations.push(`Higher-timeframe bar count is below ${MIN_HTF_BARS}, so structural confidence is reduced.`)
   }
 
   if (params.ltfBarsCount < MIN_LTF_BARS) {
-    limitations.push(`하위 타임프레임 봉 수가 ${MIN_LTF_BARS}개 미만이라 유동성/오더블록 해석 범위가 좁습니다.`)
+    limitations.push(`Lower-timeframe bar count is below ${MIN_LTF_BARS}, so liquidity and order-block context are narrower.`)
   }
 
   if (!params.hasEMA) {
-    limitations.push('EMA 정렬 데이터가 없어 추세 필터 확인이 제한됩니다.')
+    limitations.push('EMA alignment data is unavailable, so trend filtering is limited.')
   }
 
   if (!params.hasVWAP) {
-    limitations.push('VWAP 데이터가 없어 당일 평균가 대비 위치 판단이 제한됩니다.')
+    limitations.push('VWAP data is unavailable, so intraday average-price positioning is limited.')
   }
 
   return limitations

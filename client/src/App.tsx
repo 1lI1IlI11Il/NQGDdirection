@@ -221,7 +221,7 @@ function AssetView({ symbol, label, data15m, data4H, lastFetch }: AssetViewProps
           <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1">Two-timeframe bias review</span>
           {lastFetch && (
             <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-zinc-400">
-              Updated {lastFetch.toLocaleTimeString()}
+              Updated {formatLastFetch(lastFetch)}
             </span>
           )}
         </div>
@@ -254,6 +254,15 @@ function useCountdown(nextFetchAt: Date | null): number {
   }, [nextFetchAt])
 
   return secondsLeft
+}
+
+function formatLastFetch(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date)
 }
 
 export default function App() {
@@ -321,7 +330,7 @@ export default function App() {
                 Intraday futures direction, structured like a live trading desk.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
-                ICT structure, intermarket context, and short-term trade scenarios in one tighter dashboard.
+                ICT structure, intermarket context, and short-term trade scenarios in one focused dashboard.
               </p>
             </div>
 
@@ -356,7 +365,7 @@ export default function App() {
                   void refresh()
                 }}
                 disabled={refreshing}
-                title="지금 즉시 데이터 갱신"
+                title="Refresh market data now"
                 className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition ${refreshing ? 'cursor-not-allowed border-white/8 bg-white/[0.03] text-zinc-600' : 'border-white/10 bg-white/[0.05] text-zinc-200 hover:bg-white/[0.08]'}`}
               >
                 <span className={refreshing ? 'inline-block animate-spin' : ''}>↻</span>
