@@ -113,7 +113,7 @@ function createIctAnalysis(overrides: Partial<ICTAnalysis> = {}): ICTAnalysis {
 }
 
 describe('scenarioGenerator', () => {
-  it('bullish case: HTF/LTF bullish with nearest bull OB produces 상승 and >= 60 probability', () => {
+  it('bullish case: HTF/LTF bullish with nearest bull OB produces Bullish and >= 60 probability', () => {
     const bullOrderBlock = createOrderBlock('bullish', 96, 99, 1)
     const bearOrderBlock = createOrderBlock('bearish', 108, 111, 2)
     const report = buildAnalysisReport({
@@ -135,13 +135,13 @@ describe('scenarioGenerator', () => {
       indicatorSignal: createSignal(2)
     })
 
-    expect(report.direction).toBe('상승')
-    expect(report.probabilityScore.direction).toBe('상승')
+    expect(report.direction).toBe('Bullish')
+    expect(report.probabilityScore.direction).toBe('Bullish')
     expect(report.probabilityScore.value).toBeGreaterThanOrEqual(60)
-    expect(report.primaryScenario.direction).toBe('상승')
+    expect(report.primaryScenario.direction).toBe('Bullish')
   })
 
-  it('bearish case: HTF/LTF bearish with nearest bear OB produces 하락 and >= 60 probability', () => {
+  it('bearish case: HTF/LTF bearish with nearest bear OB produces Bearish and >= 60 probability', () => {
     const bullOrderBlock = createOrderBlock('bullish', 89, 92, 1)
     const bearOrderBlock = createOrderBlock('bearish', 101, 104, 2)
     const report = buildAnalysisReport({
@@ -164,13 +164,13 @@ describe('scenarioGenerator', () => {
       indicatorSignal: createSignal(-2, 95)
     })
 
-    expect(report.direction).toBe('하락')
-    expect(report.probabilityScore.direction).toBe('하락')
+    expect(report.direction).toBe('Bearish')
+    expect(report.probabilityScore.direction).toBe('Bearish')
     expect(report.probabilityScore.value).toBeGreaterThanOrEqual(60)
-    expect(report.primaryScenario.direction).toBe('하락')
+    expect(report.primaryScenario.direction).toBe('Bearish')
   })
 
-  it('neutral/range case: HTF/LTF ranging produces 중립 direction', () => {
+  it('neutral/range case: HTF/LTF ranging produces Neutral direction', () => {
     const bullOrderBlock = createOrderBlock('bullish', 96, 98, 1)
     const bearOrderBlock = createOrderBlock('bearish', 102, 104, 2)
     const report = buildAnalysisReport({
@@ -191,8 +191,8 @@ describe('scenarioGenerator', () => {
       indicatorSignal: createSignal(0)
     })
 
-    expect(report.direction).toBe('중립')
-    expect(report.primaryScenario.direction).toBe('중립')
+    expect(report.direction).toBe('Neutral')
+    expect(report.primaryScenario.direction).toBe('Neutral')
   })
 
   it('data missing case: empty bars produce data limitations entries', () => {
@@ -251,5 +251,29 @@ describe('scenarioGenerator', () => {
 
     expect(report.eventRisks).toEqual(eventRisks)
     expect(report.finalVerdict).toContain('FOMC statement due within 30 minutes')
+  })
+
+  it('generated report copy is fully English-facing', () => {
+    const bullOrderBlock = createOrderBlock('bullish', 96, 99, 1)
+    const report = buildAnalysisReport({
+      asset: 'NQ',
+      timeframe: '15m',
+      htfBias: 'BULLISH',
+      ltfBias: 'BULLISH',
+      ictAnalysis: createIctAnalysis({
+        structureBias: 'BULLISH',
+        currentPrice: 101,
+        orderBlocks: [bullOrderBlock],
+        fvgs: [createFvg('bullish', 101, 103, 2)],
+        liquidityLevels: [createLiquidityLevel(104, 'BSL', 3)],
+        nearestBullOB: bullOrderBlock,
+      }),
+      indicatorSignal: createSignal(2, 101)
+    })
+
+    expect(report.direction).toBe('Bullish')
+    expect(report.finalVerdict).toMatch(/^[^가-힣]*$/)
+    expect(report.primaryScenario.invalidationCondition).toMatch(/^[^가-힣]*$/)
+    expect(report.primaryScenario.rationale).toMatch(/^[^가-힣]*$/)
   })
 })

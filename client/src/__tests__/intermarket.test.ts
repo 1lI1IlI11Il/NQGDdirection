@@ -22,7 +22,7 @@ function createAsset(closes: number[], structureBias: 'BULLISH' | 'BEARISH' | 'R
 }
 
 describe('intermarket', () => {
-  it('NQ-SP500 동조: both bullish assets are marked CONVERGING', () => {
+  it('NQ-SP500 convergence: both bullish assets are marked CONVERGING', () => {
     const result = analyzeIntermarket({
       'NQ=F': createAsset([100, 104], 'BULLISH'),
       'ES=F': createAsset([100, 103], 'BULLISH'),
@@ -34,7 +34,7 @@ describe('intermarket', () => {
     expect(result.nqSpCorrelation).toBe('CONVERGING')
   })
 
-  it('NQ-SP500 비동조: bullish NQ and bearish ES are marked DIVERGING', () => {
+  it('NQ-SP500 divergence: bullish NQ and bearish ES are marked DIVERGING', () => {
     const result = analyzeIntermarket({
       'NQ=F': createAsset([100, 104], 'BULLISH'),
       'ES=F': createAsset([100, 96], 'BEARISH'),
